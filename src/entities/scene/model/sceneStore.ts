@@ -14,12 +14,18 @@ import {
   type FurnitureKind,
 } from '@entities/furniture';
 import { findFinish, type FinishSurface } from '@entities/finish';
+import {
+  findLightingCatalog,
+  type LightingItem,
+  type LightingKind,
+} from '@entities/lighting';
 import type { CameraMode, Selection } from './types';
 
 interface SceneState {
   rooms: Room[];
   doorways: Doorway[];
   furniture: FurnitureItem[];
+  lights: LightingItem[];
   selection: Selection | null;
   /** 새 가구를 추가할 때 기본으로 들어갈 방 id. */
   activeRoomId: string | null;
@@ -29,6 +35,15 @@ interface SceneState {
   removeFurniture: (id: string) => void;
   moveFurniture: (id: string, position: Vec3) => void;
   rotateFurniture: (id: string, rotationY: number) => void;
+
+  /**
+   * 카탈로그 항목 종류로 새 조명을 활성 룸 중앙에 추가.
+   * y 좌표는 anchor (ceiling/floor)에 따라 카탈로그가 결정한다 — 사용자는
+   * 일단 위치만 정하고, 추후 인스펙터에서 미세조정 가능.
+   */
+  addLighting: (kind: LightingKind) => void;
+  removeLighting: (id: string) => void;
+  moveLighting: (id: string, position: Vec3) => void;
 
   addRoom: () => void;
   removeRoom: (id: string) => void;
@@ -44,6 +59,7 @@ interface SceneState {
 
   selectFurniture: (id: string | null) => void;
   selectRoom: (id: string | null) => void;
+  selectLighting: (id: string | null) => void;
   setActiveRoom: (id: string) => void;
 
   setCameraMode: (mode: CameraMode) => void;
@@ -57,6 +73,7 @@ function initialState(): {
   rooms: Room[];
   doorways: Doorway[];
   furniture: FurnitureItem[];
+  lights: LightingItem[];
   activeRoomId: string;
 } {
   const room: Room = {
@@ -66,7 +83,7 @@ function initialState(): {
     cellZ: -1,
     ...DEFAULT_ROOM_TEMPLATE,
   };
-  return { rooms: [room], doorways: [], furniture: [], activeRoomId: room.id };
+  return { rooms: [room], doorways: [], furniture: [], lights: [], activeRoomId: room.id };
 }
 
 function pickRoomName(existing: readonly Room[]): string {
@@ -110,6 +127,7 @@ export const useSceneStore = create<SceneState>((set) => ({
   rooms: init.rooms,
   doorways: init.doorways,
   furniture: init.furniture,
+  lights: init.lights,
   selection: null,
   activeRoomId: init.activeRoomId,
   cameraMode: 'orbit',
@@ -155,6 +173,42 @@ export const useSceneStore = create<SceneState>((set) => ({
       furniture: state.furniture.map((f) => (f.id === id ? { ...f, rotationY } : f)),
     })),
 
+  addLighting: (kind) =>
+    set((state) => {
+      const catalog = findLightingCatalog(kind);
+      if (!catalog) return state;
+      const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
+      const room = state.rooms.find((r) => r.id === targetRoomId);
+      if (!room) return state;
+      const b = roomBounds(room);
+      // anchor='ceiling'이면 천장 살짝 아래(0.05m 여유), 'floor'면 바닥 위 스탠드 본체 높이 가정(1.2m).
+      const y = catalog.anchor === 'ceiling' ? room.height - 0.05 : 1.2;
+      const item: LightingItem = {
+        id: nextId(kind),
+        kind,
+        roomId: room.id,
+        position: [b.centerX, y, b.centerZ],
+      };
+      return {
+        lights: [...state.lights, item],
+        selection: { kind: 'lighting', id: item.id },
+      };
+    }),
+
+  removeLighting: (id) =>
+    set((state) => ({
+      lights: state.lights.filter((l) => l.id !== id),
+      selection:
+        state.selection?.kind === 'lighting' && state.selection.id === id
+          ? null
+          : state.selection,
+    })),
+
+  moveLighting: (id, position) =>
+    set((state) => ({
+      lights: state.lights.map((l) => (l.id === id ? { ...l, position } : l)),
+    })),
+
   addRoom: () =>
     set((state) => {
       const { cellsW, cellsD } = NEW_ROOM_TEMPLATE;
@@ -181,11 +235,13 @@ export const useSceneStore = create<SceneState>((set) => ({
       const rooms = state.rooms.filter((r) => r.id !== id);
       const doorways = state.doorways.filter((d) => d.roomAId !== id && d.roomBId !== id);
       const furniture = state.furniture.filter((f) => f.roomId !== id);
+      const lights = state.lights.filter((l) => l.roomId !== id);
       const fallbackRoomId = rooms[0].id;
       return {
         rooms,
         doorways,
         furniture,
+        lights,
         activeRoomId: state.activeRoomId === id ? fallbackRoomId : state.activeRoomId,
         selection:
           state.selection?.kind === 'room' && state.selection.id === id ? null : state.selection,
@@ -272,6 +328,8 @@ export const useSceneStore = create<SceneState>((set) => ({
       selection: id ? { kind: 'room', id } : null,
       activeRoomId: id ?? state.activeRoomId,
     })),
+  selectLighting: (id) =>
+    set(() => ({ selection: id ? { kind: 'lighting', id } : null })),
   setActiveRoom: (id) => set({ activeRoomId: id }),
 
   setRoomFinish: (roomId, surface, finishId) =>
@@ -300,6 +358,7 @@ export const useSceneStore = create<SceneState>((set) => ({
         rooms: fresh.rooms,
         doorways: fresh.doorways,
         furniture: fresh.furniture,
+        lights: fresh.lights,
         activeRoomId: fresh.activeRoomId,
         selection: null,
       };

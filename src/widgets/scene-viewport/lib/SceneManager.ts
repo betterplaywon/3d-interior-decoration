@@ -3,6 +3,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
 import { buildRoomMesh, type Doorway, type Room } from '@entities/room';
 import { buildFurnitureGroup, syncGroupFromItem, type FurnitureItem } from '@entities/furniture';
+import {
+  buildLightingObject,
+  findLightingCatalog,
+  syncLightingFromItem,
+  type LightingItem,
+} from '@entities/lighting';
 import type { CameraMode } from '@entities/scene';
 import { buildLights } from './Lights';
 import { setupEnvironment } from './Environment';
@@ -31,6 +37,7 @@ export class SceneManager {
   private readonly clock = new THREE.Clock();
   private readonly groupById = new Map<string, THREE.Group>();
   private readonly roomGroupById = new Map<string, THREE.Group>();
+  private readonly lightGroupById = new Map<string, THREE.Group>();
 
   private raf = 0;
   private resizeObserver: ResizeObserver | null = null;
@@ -129,11 +136,51 @@ export class SceneManager {
     }
   }
 
+  /**
+   * 조명도 가구와 같은 차집합 sync. 광원은 Three.js 셰이더 컴파일 비용이 있어
+   * 전체 재생성을 더 엄격히 피한다. 카탈로그 매칭 실패한 항목은 건너뜀(폴백 없음).
+   */
+  syncLights(items: readonly LightingItem[]): void {
+    const nextIds = new Set(items.map((i) => i.id));
+
+    for (const [id, group] of this.lightGroupById) {
+      if (!nextIds.has(id)) {
+        this.scene.remove(group);
+        disposeLightingGroup(group);
+        this.lightGroupById.delete(id);
+      }
+    }
+
+    for (const item of items) {
+      let group = this.lightGroupById.get(item.id);
+      if (!group) {
+        const catalog = findLightingCatalog(item.kind);
+        if (!catalog) continue;
+        group = buildLightingObject(item, catalog);
+        this.lightGroupById.set(item.id, group);
+        this.scene.add(group);
+      } else {
+        syncLightingFromItem(group, item);
+      }
+    }
+  }
+
   pickFurnitureId(ndcX: number, ndcY: number): string | null {
     this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
     const groups = Array.from(this.groupById.values());
     const [hit] = this.raycaster.intersectObjects(groups, true);
     return (hit?.object.userData.furnitureId as string | undefined) ?? null;
+  }
+
+  /**
+   * 가구와 분리해 둔 이유: 가구 hit 먼저 → 없으면 lighting 시도 → 없으면 room 으로
+   * 우선순위를 갖는 호출 순서를 호출자(features/furniture-drag)가 결정하게 하기 위함.
+   */
+  pickLightingId(ndcX: number, ndcY: number): string | null {
+    this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+    const groups = Array.from(this.lightGroupById.values());
+    const [hit] = this.raycaster.intersectObjects(groups, true);
+    return (hit?.object.userData.lightingId as string | undefined) ?? null;
   }
 
   /**
@@ -279,6 +326,8 @@ export class SceneManager {
     this.groupById.clear();
     for (const group of this.roomGroupById.values()) disposeGroup(group);
     this.roomGroupById.clear();
+    for (const group of this.lightGroupById.values()) disposeLightingGroup(group);
+    this.lightGroupById.clear();
     this.environmentHandle?.dispose();
     this.renderer.dispose();
     if (this.renderer.domElement.parentElement === this.container) {
@@ -328,5 +377,16 @@ function disposeGroup(group: THREE.Group): void {
       if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
       else mat.dispose();
     }
+  });
+}
+
+/**
+ * 조명 Group: PointLight/SpotLight 자체는 dispose()가 없고 scene 제거로 GC.
+ * 그림자맵을 켰다면 light.shadow.dispose() 필요해질 자리 — P0는 그림자 비활성.
+ * fixture mesh(sphere)는 일반 mesh dispose 경로로 정리.
+ */
+function disposeLightingGroup(group: THREE.Group): void {
+  group.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) disposeMesh(obj);
   });
 }

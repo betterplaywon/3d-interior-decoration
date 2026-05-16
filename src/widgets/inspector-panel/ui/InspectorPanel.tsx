@@ -1,6 +1,11 @@
 import type { Room } from '@entities/room';
 import { useSceneStore } from '@entities/scene';
 import { FINISH_CATALOG, findFinish, type FinishSurface } from '@entities/finish';
+import {
+  categoryLabel,
+  findLightingCatalog,
+  shippingLabel,
+} from '@entities/lighting';
 import { findSharedEdge } from '@shared/lib/grid';
 
 const SURFACE_LABEL: Record<FinishSurface, string> = {
@@ -27,6 +32,10 @@ export function InspectorPanel() {
     const item = furniture.find((f) => f.id === selection.id);
     if (!item) return null;
     return <FurnitureInspector itemId={item.id} />;
+  }
+
+  if (selection.kind === 'lighting') {
+    return <LightingInspector itemId={selection.id} />;
   }
 
   const room = rooms.find((r) => r.id === selection.id);
@@ -163,6 +172,48 @@ function RoomInspector({ room }: RoomInspectorProps) {
         <button onClick={() => removeRoom(room.id)} disabled={rooms.length <= 1}>
           이 방 삭제
         </button>
+      </div>
+    </section>
+  );
+}
+
+interface LightingInspectorProps {
+  itemId: string;
+}
+
+/**
+ * 조명 인스턴스 인스펙터. 위치 편집은 인스펙터에 두지 않고 추후 드래그로 — 여기선
+ * 도메인 메타(카테고리/조달방식/단가)를 노출해 견적 v2 의도가 드러나게 한다.
+ */
+function LightingInspector({ itemId }: LightingInspectorProps) {
+  const item = useSceneStore((s) => s.lights.find((l) => l.id === itemId));
+  const rooms = useSceneStore((s) => s.rooms);
+  const removeLighting = useSceneStore((s) => s.removeLighting);
+
+  if (!item) return null;
+  const catalog = findLightingCatalog(item.kind);
+  if (!catalog) return null;
+  const roomName = rooms.find((r) => r.id === item.roomId)?.name ?? '-';
+
+  return (
+    <section className="panel">
+      <h3>조명 속성</h3>
+      <dl className="props">
+        <dt>이름</dt>
+        <dd>{catalog.label}</dd>
+        <dt>분류</dt>
+        <dd>{categoryLabel(catalog.category)}</dd>
+        <dt>조달</dt>
+        <dd>{shippingLabel(catalog.shipping)}</dd>
+        <dt>단가</dt>
+        <dd>{catalog.priceKRW.toLocaleString('ko-KR')}원</dd>
+        <dt>소속 방</dt>
+        <dd>{roomName}</dd>
+        <dt>위치</dt>
+        <dd>{item.position.map((v) => v.toFixed(2)).join(', ')}</dd>
+      </dl>
+      <div className="row">
+        <button onClick={() => removeLighting(item.id)}>삭제</button>
       </div>
     </section>
   );
