@@ -1,4 +1,4 @@
-export type CameraMode = 'orbit' | 'top';
+export type CameraMode = 'orbit' | 'top' | 'first';
 
 export type SelectionKind = 'furniture' | 'room';
 

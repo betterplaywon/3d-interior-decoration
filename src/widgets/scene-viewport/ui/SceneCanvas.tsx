@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useCameraMode } from '@features/camera-mode';
 import { useEmptyClick, useFurnitureDrag } from '@features/furniture-drag';
 import { useSceneManager } from '../api';
 
 export function SceneCanvas() {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const managerRef = useSceneManager(container);
+  useCameraMode(managerRef);
   const drag = useFurnitureDrag(managerRef);
   const onClick = useEmptyClick(managerRef);
 

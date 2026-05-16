@@ -17,6 +17,13 @@ export function Toolbar() {
         <button aria-pressed={cameraMode === 'top'} onClick={() => setCameraMode('top')}>
           Top
         </button>
+        <button
+          aria-pressed={cameraMode === 'first'}
+          onClick={() => setCameraMode('first')}
+          title="WASD로 이동, 캔버스 클릭으로 마우스 락"
+        >
+          1인칭
+        </button>
         <button onClick={resetScene}>전체 비우기</button>
       </div>
     </header>
