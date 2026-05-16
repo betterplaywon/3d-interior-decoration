@@ -1,0 +1,44 @@
+import * as THREE from 'three';
+
+/**
+ * GLTF의 후손 Mesh들이 그림자를 캐스팅·리시브하도록 켜기.
+ * 원본 머티리얼은 그대로 두어 PBR 룩 유지.
+ *
+ * entities/furniture 의 동명 함수와 본문이 동일하나, entities 간 cross-import
+ * 금지 룰에 따라 fixture 슬라이스 내부에 별도로 둠. 세 번째 슬라이스가 같은
+ * 헬퍼를 요구하는 시점에 shared/lib 으로 끌어올림(P1 backlog).
+ */
+export function enableShadows(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
+  });
+}
+
+/**
+ * GLTF의 스케일/원점을 카탈로그 size에 맞춤.
+ * - 각 축 독립 스케일 (비례 유지 안 함 — 위생도기는 형태 차이가 크지 않아 허용)
+ * - 모델 원점을 바닥 중앙(y=0, x=z=0)으로 정렬
+ */
+export function normalizeToBoundingSize(
+  root: THREE.Object3D,
+  targetSize: readonly [number, number, number],
+): void {
+  const box = new THREE.Box3().setFromObject(root);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const sx = size.x > 0 ? targetSize[0] / size.x : 1;
+  const sy = size.y > 0 ? targetSize[1] / size.y : 1;
+  const sz = size.z > 0 ? targetSize[2] / size.z : 1;
+  root.scale.set(sx, sy, sz);
+
+  const box2 = new THREE.Box3().setFromObject(root);
+  const center = new THREE.Vector3();
+  box2.getCenter(center);
+  root.position.x -= center.x;
+  root.position.z -= center.z;
+  root.position.y -= box2.min.y;
+}
