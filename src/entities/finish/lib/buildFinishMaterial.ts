@@ -28,14 +28,22 @@ export function buildFinishMaterial(
     metalness: finish.metalness,
   });
 
+  // 세 맵을 같은 repeat 으로 묶어야 base/normal/roughness 가 픽셀 단위로 정렬됨.
+  // baseColorMap 이 없어도 normal/roughness 만 적용하면 단색 PBR 디테일이 살아남.
+  const repeat = finish.textureRepeatPerMeter ?? 0.5;
+  const rx = Math.max(1, options.sizeX * repeat);
+  const ry = Math.max(1, options.sizeY * repeat);
+
   if (finish.baseColorMap) {
-    const repeat = finish.textureRepeatPerMeter ?? 0.5;
-    const map = textureCache.getRepeated(
-      finish.baseColorMap,
-      Math.max(1, options.sizeX * repeat),
-      Math.max(1, options.sizeY * repeat),
-    );
-    material.map = map;
+    material.map = textureCache.getRepeated(finish.baseColorMap, rx, ry);
+  }
+  if (finish.normalMap) {
+    material.normalMap = textureCache.getDataRepeated(finish.normalMap, rx, ry);
+  }
+  if (finish.roughnessMap) {
+    material.roughnessMap = textureCache.getDataRepeated(finish.roughnessMap, rx, ry);
+    // 맵 값이 곱해지는 구조 — base roughness 를 1.0 으로 두지 않으면 전체가 어두워짐
+    material.roughness = 1.0;
   }
   return material;
 }

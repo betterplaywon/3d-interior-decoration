@@ -22,6 +22,16 @@ export interface FinishItem {
    * 텍스처는 wrap = RepeatWrapping, repeat 은 textureRepeatPerMeter 로 결정.
    */
   baseColorMap?: string;
+  /**
+   * 노말맵 URL. Poly Haven `_nor_gl_*` (OpenGL convention) 권장.
+   * sRGB 가 아닌 linear 데이터라 textureCache 의 data 경로로 로드해야 함.
+   */
+  normalMap?: string;
+  /**
+   * 러프니스맵 URL. Poly Haven `_rough_*` 권장. linear 데이터.
+   * 적용 시 material.roughness 는 1.0 으로 두고 맵 값이 곱해지게 함.
+   */
+  roughnessMap?: string;
   /** 텍스처 반복 밀도(미터당 반복 횟수). 예: 0.5면 2m마다 한 번 반복. */
   textureRepeatPerMeter?: number;
   /** 면적당 단가(KRW/m²). 견적 v2에서 사용. */
