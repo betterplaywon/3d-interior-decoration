@@ -19,6 +19,7 @@ export function useSceneManager(container: HTMLElement | null) {
     const initialSelectedRoom = state.selection?.kind === 'room' ? state.selection.id : null;
     manager.syncRooms(state.rooms, state.doorways, initialSelectedRoom);
     manager.syncFurniture(state.furniture);
+    manager.syncLights(state.lights);
 
     const unsub = useSceneStore.subscribe((s, prev) => {
       const roomsChanged = s.rooms !== prev.rooms || s.doorways !== prev.doorways;
@@ -28,6 +29,7 @@ export function useSceneManager(container: HTMLElement | null) {
         manager.syncRooms(s.rooms, s.doorways, selectedRoom);
       }
       if (s.furniture !== prev.furniture) manager.syncFurniture(s.furniture);
+      if (s.lights !== prev.lights) manager.syncLights(s.lights);
     });
 
     return () => {
