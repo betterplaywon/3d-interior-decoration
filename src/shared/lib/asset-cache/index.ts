@@ -1,0 +1,1 @@
+export { assetCache } from './AssetCache';
