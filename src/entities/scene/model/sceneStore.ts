@@ -19,6 +19,11 @@ import {
   type LightingItem,
   type LightingKind,
 } from '@entities/lighting';
+import {
+  findFixtureCatalog,
+  type FixtureItem,
+  type FixtureKind,
+} from '@entities/fixture';
 import type { CameraMode, Selection } from './types';
 
 interface SceneState {
@@ -26,6 +31,7 @@ interface SceneState {
   doorways: Doorway[];
   furniture: FurnitureItem[];
   lights: LightingItem[];
+  fixtures: FixtureItem[];
   selection: Selection | null;
   /** 새 가구를 추가할 때 기본으로 들어갈 방 id. */
   activeRoomId: string | null;
@@ -45,6 +51,15 @@ interface SceneState {
   removeLighting: (id: string) => void;
   moveLighting: (id: string, position: Vec3) => void;
 
+  /**
+   * 위생도기를 활성 룸 중앙(바닥)에 추가. 룸 타입(욕실/주방) 제약은 P0에서
+   * 도입하지 않아 어느 방에든 배치 가능 — 후속 작업에서 룸 분류 도입 시 제약화.
+   */
+  addFixture: (kind: FixtureKind, position?: Vec3) => void;
+  removeFixture: (id: string) => void;
+  moveFixture: (id: string, position: Vec3) => void;
+  rotateFixture: (id: string, rotationY: number) => void;
+
   addRoom: () => void;
   removeRoom: (id: string) => void;
   renameRoom: (id: string, name: string) => void;
@@ -60,6 +75,7 @@ interface SceneState {
   selectFurniture: (id: string | null) => void;
   selectRoom: (id: string | null) => void;
   selectLighting: (id: string | null) => void;
+  selectFixture: (id: string | null) => void;
   setActiveRoom: (id: string) => void;
 
   setCameraMode: (mode: CameraMode) => void;
@@ -74,6 +90,7 @@ function initialState(): {
   doorways: Doorway[];
   furniture: FurnitureItem[];
   lights: LightingItem[];
+  fixtures: FixtureItem[];
   activeRoomId: string;
 } {
   const room: Room = {
@@ -83,7 +100,14 @@ function initialState(): {
     cellZ: -1,
     ...DEFAULT_ROOM_TEMPLATE,
   };
-  return { rooms: [room], doorways: [], furniture: [], lights: [], activeRoomId: room.id };
+  return {
+    rooms: [room],
+    doorways: [],
+    furniture: [],
+    lights: [],
+    fixtures: [],
+    activeRoomId: room.id,
+  };
 }
 
 function pickRoomName(existing: readonly Room[]): string {
@@ -128,6 +152,7 @@ export const useSceneStore = create<SceneState>((set) => ({
   doorways: init.doorways,
   furniture: init.furniture,
   lights: init.lights,
+  fixtures: init.fixtures,
   selection: null,
   activeRoomId: init.activeRoomId,
   cameraMode: 'orbit',
@@ -209,6 +234,50 @@ export const useSceneStore = create<SceneState>((set) => ({
       lights: state.lights.map((l) => (l.id === id ? { ...l, position } : l)),
     })),
 
+  addFixture: (kind, position) =>
+    set((state) => {
+      const catalog = findFixtureCatalog(kind);
+      if (!catalog) return state;
+      const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
+      const room = state.rooms.find((r) => r.id === targetRoomId);
+      if (!room) return state;
+      const b = roomBounds(room);
+      const initialPos: Vec3 = position ?? [b.centerX, 0, b.centerZ];
+      const item: FixtureItem = {
+        id: nextId(kind),
+        kind,
+        roomId: room.id,
+        position: initialPos,
+        rotationY: 0,
+        size: catalog.size,
+        color: catalog.color,
+        modelUrl: catalog.modelUrl,
+      };
+      return {
+        fixtures: [...state.fixtures, item],
+        selection: { kind: 'fixture', id: item.id },
+      };
+    }),
+
+  removeFixture: (id) =>
+    set((state) => ({
+      fixtures: state.fixtures.filter((f) => f.id !== id),
+      selection:
+        state.selection?.kind === 'fixture' && state.selection.id === id
+          ? null
+          : state.selection,
+    })),
+
+  moveFixture: (id, position) =>
+    set((state) => ({
+      fixtures: state.fixtures.map((f) => (f.id === id ? { ...f, position } : f)),
+    })),
+
+  rotateFixture: (id, rotationY) =>
+    set((state) => ({
+      fixtures: state.fixtures.map((f) => (f.id === id ? { ...f, rotationY } : f)),
+    })),
+
   addRoom: () =>
     set((state) => {
       const { cellsW, cellsD } = NEW_ROOM_TEMPLATE;
@@ -234,17 +303,34 @@ export const useSceneStore = create<SceneState>((set) => ({
       if (state.rooms.length <= 1) return state; // 최소 1개는 유지
       const rooms = state.rooms.filter((r) => r.id !== id);
       const doorways = state.doorways.filter((d) => d.roomAId !== id && d.roomBId !== id);
+      const removedFurnitureIds = new Set(
+        state.furniture.filter((f) => f.roomId === id).map((f) => f.id),
+      );
+      const removedLightIds = new Set(
+        state.lights.filter((l) => l.roomId === id).map((l) => l.id),
+      );
+      const removedFixtureIds = new Set(
+        state.fixtures.filter((f) => f.roomId === id).map((f) => f.id),
+      );
       const furniture = state.furniture.filter((f) => f.roomId !== id);
       const lights = state.lights.filter((l) => l.roomId !== id);
+      const fixtures = state.fixtures.filter((f) => f.roomId !== id);
       const fallbackRoomId = rooms[0].id;
+      // 선택이 사라진 방 자체 또는 그 방에 속해 같이 사라진 인스턴스였다면 해제
+      const selection = state.selection;
+      const selectionCleared =
+        (selection?.kind === 'room' && selection.id === id) ||
+        (selection?.kind === 'furniture' && removedFurnitureIds.has(selection.id)) ||
+        (selection?.kind === 'lighting' && removedLightIds.has(selection.id)) ||
+        (selection?.kind === 'fixture' && removedFixtureIds.has(selection.id));
       return {
         rooms,
         doorways,
         furniture,
         lights,
+        fixtures,
         activeRoomId: state.activeRoomId === id ? fallbackRoomId : state.activeRoomId,
-        selection:
-          state.selection?.kind === 'room' && state.selection.id === id ? null : state.selection,
+        selection: selectionCleared ? null : selection,
       };
     }),
 
@@ -273,21 +359,27 @@ export const useSceneStore = create<SceneState>((set) => ({
         return d.offsetCells + d.widthCells <= sharedLength;
       });
 
-      // 가구는 새 방 경계 안으로 클램프
+      // 가구·위생도기는 새 방 경계 안으로 클램프 (조명은 천장/공중 점이라 평면 클램프 무관)
       const b = roomBounds(next);
-      const furniture = state.furniture.map((f) => {
-        if (f.roomId !== id) return f;
-        const halfW = f.size[0] / 2;
-        const halfD = f.size[2] / 2;
-        const x = Math.max(b.minX + halfW, Math.min(b.maxX - halfW, f.position[0]));
-        const z = Math.max(b.minZ + halfD, Math.min(b.maxZ - halfD, f.position[2]));
-        return { ...f, position: [x, f.position[1], z] as Vec3 };
-      });
+      const clampXZ = (size: Vec3, pos: Vec3): Vec3 => {
+        const halfW = size[0] / 2;
+        const halfD = size[2] / 2;
+        const x = Math.max(b.minX + halfW, Math.min(b.maxX - halfW, pos[0]));
+        const z = Math.max(b.minZ + halfD, Math.min(b.maxZ - halfD, pos[2]));
+        return [x, pos[1], z];
+      };
+      const furniture = state.furniture.map((f) =>
+        f.roomId === id ? { ...f, position: clampXZ(f.size, f.position) } : f,
+      );
+      const fixtures = state.fixtures.map((f) =>
+        f.roomId === id ? { ...f, position: clampXZ(f.size, f.position) } : f,
+      );
 
       return {
         rooms: state.rooms.map((r) => (r.id === id ? next : r)),
         doorways,
         furniture,
+        fixtures,
       };
     }),
 
@@ -330,6 +422,8 @@ export const useSceneStore = create<SceneState>((set) => ({
     })),
   selectLighting: (id) =>
     set(() => ({ selection: id ? { kind: 'lighting', id } : null })),
+  selectFixture: (id) =>
+    set(() => ({ selection: id ? { kind: 'fixture', id } : null })),
   setActiveRoom: (id) => set({ activeRoomId: id }),
 
   setRoomFinish: (roomId, surface, finishId) =>
@@ -359,6 +453,7 @@ export const useSceneStore = create<SceneState>((set) => ({
         doorways: fresh.doorways,
         furniture: fresh.furniture,
         lights: fresh.lights,
+        fixtures: fresh.fixtures,
         activeRoomId: fresh.activeRoomId,
         selection: null,
       };

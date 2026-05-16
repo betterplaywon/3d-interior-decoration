@@ -6,6 +6,11 @@ import {
   findLightingCatalog,
   shippingLabel,
 } from '@entities/lighting';
+import {
+  findFixtureCatalog,
+  fixtureCategoryLabel,
+  fixtureShippingLabel,
+} from '@entities/fixture';
 import { findSharedEdge } from '@shared/lib/grid';
 
 const SURFACE_LABEL: Record<FinishSurface, string> = {
@@ -36,6 +41,10 @@ export function InspectorPanel() {
 
   if (selection.kind === 'lighting') {
     return <LightingInspector itemId={selection.id} />;
+  }
+
+  if (selection.kind === 'fixture') {
+    return <FixtureInspector itemId={selection.id} />;
   }
 
   const room = rooms.find((r) => r.id === selection.id);
@@ -214,6 +223,54 @@ function LightingInspector({ itemId }: LightingInspectorProps) {
       </dl>
       <div className="row">
         <button onClick={() => removeLighting(item.id)}>삭제</button>
+      </div>
+    </section>
+  );
+}
+
+interface FixtureInspectorProps {
+  itemId: string;
+}
+
+/**
+ * 위생도기 인스턴스 인스펙터. 가구처럼 배치/회전 편집을 제공하고,
+ * 조명처럼 도메인 메타(분류/조달/단가)를 함께 노출해 견적 v2 흐름에 연결할 자리를 만든다.
+ */
+function FixtureInspector({ itemId }: FixtureInspectorProps) {
+  const item = useSceneStore((s) => s.fixtures.find((f) => f.id === itemId));
+  const rooms = useSceneStore((s) => s.rooms);
+  const removeFixture = useSceneStore((s) => s.removeFixture);
+  const rotateFixture = useSceneStore((s) => s.rotateFixture);
+
+  if (!item) return null;
+  const catalog = findFixtureCatalog(item.kind);
+  if (!catalog) return null;
+  const roomName = rooms.find((r) => r.id === item.roomId)?.name ?? '-';
+
+  return (
+    <section className="panel">
+      <h3>위생도기 속성</h3>
+      <dl className="props">
+        <dt>이름</dt>
+        <dd>{catalog.label}</dd>
+        <dt>분류</dt>
+        <dd>{fixtureCategoryLabel(catalog.category)}</dd>
+        <dt>조달</dt>
+        <dd>{fixtureShippingLabel(catalog.shipping)}</dd>
+        <dt>단가</dt>
+        <dd>{catalog.priceKRW.toLocaleString('ko-KR')}원</dd>
+        <dt>소속 방</dt>
+        <dd>{roomName}</dd>
+        <dt>위치</dt>
+        <dd>{item.position.map((v) => v.toFixed(2)).join(', ')}</dd>
+        <dt>회전(Y)</dt>
+        <dd>{((item.rotationY * 180) / Math.PI).toFixed(0)}°</dd>
+      </dl>
+      <div className="row">
+        <button onClick={() => rotateFixture(item.id, item.rotationY + Math.PI / 2)}>
+          90° 회전
+        </button>
+        <button onClick={() => removeFixture(item.id)}>삭제</button>
       </div>
     </section>
   );

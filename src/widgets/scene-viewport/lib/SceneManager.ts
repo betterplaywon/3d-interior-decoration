@@ -9,6 +9,11 @@ import {
   syncLightingFromItem,
   type LightingItem,
 } from '@entities/lighting';
+import {
+  buildFixtureGroup,
+  syncFixtureFromItem,
+  type FixtureItem,
+} from '@entities/fixture';
 import type { CameraMode } from '@entities/scene';
 import { buildLights } from './Lights';
 import { setupEnvironment } from './Environment';
@@ -38,6 +43,7 @@ export class SceneManager {
   private readonly groupById = new Map<string, THREE.Group>();
   private readonly roomGroupById = new Map<string, THREE.Group>();
   private readonly lightGroupById = new Map<string, THREE.Group>();
+  private readonly fixtureGroupById = new Map<string, THREE.Group>();
 
   private raf = 0;
   private resizeObserver: ResizeObserver | null = null;
@@ -181,6 +187,41 @@ export class SceneManager {
     const groups = Array.from(this.lightGroupById.values());
     const [hit] = this.raycaster.intersectObjects(groups, true);
     return (hit?.object.userData.lightingId as string | undefined) ?? null;
+  }
+
+  /**
+   * 위생도기 차집합 sync. 폴백 박스가 있으므로 카탈로그 매칭 실패 케이스가 없음 —
+   * 가구와 동일한 흐름. dispose 시 race 방어 위해 disposed 플래그를 마킹.
+   */
+  syncFixtures(items: readonly FixtureItem[]): void {
+    const nextIds = new Set(items.map((i) => i.id));
+
+    for (const [id, group] of this.fixtureGroupById) {
+      if (!nextIds.has(id)) {
+        this.scene.remove(group);
+        disposeGroup(group);
+        group.userData.disposed = true;
+        this.fixtureGroupById.delete(id);
+      }
+    }
+
+    for (const item of items) {
+      let group = this.fixtureGroupById.get(item.id);
+      if (!group) {
+        group = buildFixtureGroup(item);
+        this.fixtureGroupById.set(item.id, group);
+        this.scene.add(group);
+      } else {
+        syncFixtureFromItem(group, item);
+      }
+    }
+  }
+
+  pickFixtureId(ndcX: number, ndcY: number): string | null {
+    this.raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), this.camera);
+    const groups = Array.from(this.fixtureGroupById.values());
+    const [hit] = this.raycaster.intersectObjects(groups, true);
+    return (hit?.object.userData.fixtureId as string | undefined) ?? null;
   }
 
   /**
@@ -328,6 +369,11 @@ export class SceneManager {
     this.roomGroupById.clear();
     for (const group of this.lightGroupById.values()) disposeLightingGroup(group);
     this.lightGroupById.clear();
+    for (const group of this.fixtureGroupById.values()) {
+      disposeGroup(group);
+      group.userData.disposed = true;
+    }
+    this.fixtureGroupById.clear();
     this.environmentHandle?.dispose();
     this.renderer.dispose();
     if (this.renderer.domElement.parentElement === this.container) {
