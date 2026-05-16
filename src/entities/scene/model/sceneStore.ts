@@ -13,6 +13,7 @@ import {
   type FurnitureItem,
   type FurnitureKind,
 } from '@entities/furniture';
+import { findFinish, type FinishSurface } from '@entities/finish';
 import type { CameraMode, Selection } from './types';
 
 interface SceneState {
@@ -35,6 +36,11 @@ interface SceneState {
   resizeRoom: (id: string, cellsW: number, cellsD: number) => void;
   /** 두 방이 인접하다면 그 공유 변에 doorway를 토글한다. */
   toggleDoorway: (roomAId: string, roomBId: string) => void;
+  /**
+   * 특정 면(바닥/벽/천장)에 마감재를 적용. finishId가 카탈로그에 없거나
+   * 해당 면 카테고리에 호환되지 않으면 무시한다(잘못된 조합 방어).
+   */
+  setRoomFinish: (roomId: string, surface: FinishSurface, finishId: string | null) => void;
 
   selectFurniture: (id: string | null) => void;
   selectRoom: (id: string | null) => void;
@@ -267,6 +273,24 @@ export const useSceneStore = create<SceneState>((set) => ({
       activeRoomId: id ?? state.activeRoomId,
     })),
   setActiveRoom: (id) => set({ activeRoomId: id }),
+
+  setRoomFinish: (roomId, surface, finishId) =>
+    set((state) => {
+      if (finishId !== null) {
+        const finish = findFinish(finishId);
+        if (!finish) return state;
+        if (!finish.applicableTo.includes(surface)) return state;
+      }
+      const key =
+        surface === 'floor'
+          ? 'floorFinishId'
+          : surface === 'wall'
+            ? 'wallFinishId'
+            : 'ceilingFinishId';
+      return {
+        rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, [key]: finishId } : r)),
+      };
+    }),
 
   setCameraMode: (mode) => set({ cameraMode: mode }),
   resetScene: () =>

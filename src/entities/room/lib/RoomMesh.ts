@@ -1,10 +1,18 @@
 import * as THREE from 'three';
 import { CELL_SIZE } from '@shared/config';
 import { doorwaysOnWall, type WallSide } from '@shared/lib/grid';
+import { buildFinishMaterial, findFinish, type FinishSurface } from '@entities/finish';
 import type { Doorway, Room } from '../model';
 
 /** doorway 윗부분 인방(lintel)은 이 높이만큼 남긴다. 시각적으로 "문"임을 알리는 단서. */
 const DOORWAY_OPENING_HEIGHT = 2.1;
+
+/** 마감재가 지정 안 됐을 때의 폴백 색. 빈 슬롯도 렌더는 끊기지 않게. */
+const FALLBACK_COLOR: Record<FinishSurface, string> = {
+  floor: '#cdbfa6',
+  wall: '#ece5d6',
+  ceiling: '#f5f3ee',
+};
 
 interface BuildOptions {
   selected: boolean;
@@ -33,18 +41,15 @@ export function buildRoomMesh(
 
   const width = room.cellsW * CELL_SIZE;
   const depth = room.cellsD * CELL_SIZE;
+  const height = room.height;
 
-  const floorColor = options.selected ? lightenColor(room.floorColor, 0.08) : room.floorColor;
-  const wallMaterial = new THREE.MeshStandardMaterial({
-    color: room.wallColor,
-    roughness: 0.95,
-    metalness: 0.0,
-  });
+  const floorMaterial = makeSurfaceMaterial(room.floorFinishId, 'floor', width, depth, options.selected ? 0.08 : 0);
+  const wallMaterial = makeSurfaceMaterial(room.wallFinishId, 'wall', Math.max(width, depth), height, 0);
+  // 벽은 안쪽 면도 카메라가 들여다보게 DoubleSide. (Top 뷰는 위에서, 1인칭은 안쪽에서)
+  wallMaterial.side = THREE.DoubleSide;
+  const ceilingMaterial = makeSurfaceMaterial(room.ceilingFinishId, 'ceiling', width, depth, 0);
 
-  const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(width, depth),
-    new THREE.MeshStandardMaterial({ color: floorColor, roughness: 0.85, metalness: 0.0 }),
-  );
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
   // PlaneGeometry는 자기 중심을 원점으로 갖는다 — 룸 로컬에서 중심으로 옮김
   floor.position.set(width / 2, 0, depth / 2);
@@ -52,6 +57,16 @@ export function buildRoomMesh(
   floor.name = 'Floor';
   floor.userData.roomId = room.id;
   group.add(floor);
+
+  // 천장 — 1인칭 모드에서 위를 봤을 때 보이도록 BackSide. Top/Orbit 시야는 살짝 거슬릴 수 있으나
+  // 카메라 모드별 visibility 토글은 추후 로드맵(룩-앵글 의존 표시) 항목으로 분리.
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), ceilingMaterial);
+  ceiling.material.side = THREE.BackSide;
+  ceiling.rotation.x = -Math.PI / 2;
+  ceiling.position.set(width / 2, height, depth / 2);
+  ceiling.name = 'Ceiling';
+  ceiling.userData.roomId = room.id;
+  group.add(ceiling);
 
   // 선택된 방은 바닥 외곽선을 살짝 띄워 표시
   if (options.selected) {
@@ -196,10 +211,33 @@ function placeWall(
   }
 }
 
-function lightenColor(hex: string, amount: number): string {
+/**
+ * 마감재 id가 있으면 buildFinishMaterial로, 없거나 카탈로그에 없으면 폴백 단색.
+ * 폴백 경로가 있어 마감재 시스템 도입 전 데이터·잘못된 id 모두 안전하게 렌더된다.
+ */
+function makeSurfaceMaterial(
+  finishId: string | null,
+  surface: FinishSurface,
+  sizeX: number,
+  sizeY: number,
+  tintAmount: number,
+): THREE.MeshStandardMaterial {
+  const finish = findFinish(finishId);
+  if (finish) {
+    return buildFinishMaterial(finish, { sizeX, sizeY, tintAmount });
+  }
+  const color = tintAmount ? tint(FALLBACK_COLOR[surface], tintAmount) : FALLBACK_COLOR[surface];
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: surface === 'floor' ? 0.85 : 0.95,
+    metalness: 0.0,
+  });
+}
+
+function tint(hex: string, amount: number): string {
   const c = new THREE.Color(hex);
-  c.r = Math.min(1, c.r + amount);
-  c.g = Math.min(1, c.g + amount);
-  c.b = Math.min(1, c.b + amount);
+  c.r = Math.min(1, Math.max(0, c.r + amount));
+  c.g = Math.min(1, Math.max(0, c.g + amount));
+  c.b = Math.min(1, Math.max(0, c.b + amount));
   return `#${c.getHexString()}`;
 }

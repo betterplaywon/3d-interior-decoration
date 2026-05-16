@@ -1,6 +1,13 @@
 import type { Room } from '@entities/room';
 import { useSceneStore } from '@entities/scene';
+import { FINISH_CATALOG, findFinish, type FinishSurface } from '@entities/finish';
 import { findSharedEdge } from '@shared/lib/grid';
+
+const SURFACE_LABEL: Record<FinishSurface, string> = {
+  floor: '바닥',
+  wall: '벽',
+  ceiling: '천장',
+};
 
 export function InspectorPanel() {
   const selection = useSceneStore((s) => s.selection);
@@ -124,6 +131,11 @@ function RoomInspector({ room }: RoomInspectorProps) {
         </dd>
       </dl>
 
+      <h4 className="subhead">마감재</h4>
+      <FinishPicker roomId={room.id} surface="floor" currentId={room.floorFinishId} />
+      <FinishPicker roomId={room.id} surface="wall" currentId={room.wallFinishId} />
+      <FinishPicker roomId={room.id} surface="ceiling" currentId={room.ceilingFinishId} />
+
       <h4 className="subhead">연결</h4>
       {neighbors.length === 0 ? (
         <p className="muted">인접한 방이 없습니다.</p>
@@ -153,5 +165,51 @@ function RoomInspector({ room }: RoomInspectorProps) {
         </button>
       </div>
     </section>
+  );
+}
+
+interface FinishPickerProps {
+  roomId: string;
+  surface: FinishSurface;
+  currentId: string | null;
+}
+
+/**
+ * 면 하나당 한 줄: 좌측 컬러 칩 + 라벨 + 단가, 우측 select 로 같은 면에 적용 가능한 항목들 나열.
+ * 섬네일은 PBR 결과를 작은 색칩으로 근사 — 텍스처 도입 후엔 canvas 미리보기로 확장 가능.
+ */
+function FinishPicker({ roomId, surface, currentId }: FinishPickerProps) {
+  const setRoomFinish = useSceneStore((s) => s.setRoomFinish);
+  const options = FINISH_CATALOG.filter((f) => f.applicableTo.includes(surface));
+  const current = findFinish(currentId);
+
+  return (
+    <div className="finish-row">
+      <span
+        className="finish-swatch"
+        style={{ background: current?.baseColor ?? '#cccccc' }}
+        aria-label={`${SURFACE_LABEL[surface]} 색`}
+      />
+      <div className="finish-meta">
+        <span className="finish-surface">{SURFACE_LABEL[surface]}</span>
+        <span className="finish-label">{current?.label ?? '미지정'}</span>
+        {current && (
+          <span className="finish-price muted">
+            {current.pricePerSqmKRW.toLocaleString('ko-KR')}원/m²
+          </span>
+        )}
+      </div>
+      <select
+        value={currentId ?? ''}
+        onChange={(e) => setRoomFinish(roomId, surface, e.target.value || null)}
+      >
+        <option value="">미지정</option>
+        {options.map((opt) => (
+          <option key={opt.id} value={opt.id}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
