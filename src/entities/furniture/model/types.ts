@@ -1,6 +1,14 @@
 import type { AssetId, Vec3 } from '@shared/model';
 
-export type FurnitureKind = 'sofa' | 'table' | 'chair' | 'bed' | 'lamp';
+export type FurnitureKind =
+  | 'sofa'
+  | 'table'
+  | 'chair'
+  | 'bed'
+  | 'lamp'
+  | 'desk'
+  | 'shelf'
+  | 'cabinet';
 
 /**
  * 가구 도메인 nominal id. 카탈로그 unique key 이자 인스턴스 식별 축.

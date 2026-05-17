@@ -54,6 +54,15 @@ export const FURNITURE_CATALOG: readonly FurnitureCatalogItem[] = [
     modelUrl: '/models/furniture/small_wooden_table_01_4k.gltf/small_wooden_table_01_4k.gltf',
   },
   {
+    assetId: id('outdoor_table_chair_set_01'),
+    kind: 'table',
+    label: '아웃도어 테이블 세트',
+    size: [1.6, 0.9, 1.6],
+    color: '#a89884',
+    modelUrl:
+      '/models/furniture/outdoor_table_chair_set_01_4k.gltf/outdoor_table_chair_set_01_4k.gltf',
+  },
+  {
     assetId: id('dining_chair_02'),
     kind: 'chair',
     label: '의자 (다이닝)',
@@ -92,6 +101,47 @@ export const FURNITURE_CATALOG: readonly FurnitureCatalogItem[] = [
     size: [0.3, 1.5, 0.3],
     color: '#d9b86a',
     modelUrl: '/models/desk_lamp_arm_01/desk_lamp_arm_01_4k.gltf',
+  },
+  {
+    assetId: id('metal_office_desk'),
+    kind: 'desk',
+    label: '메탈 오피스 데스크',
+    size: [1.6, 0.75, 0.8],
+    color: '#3d3d3d',
+    modelUrl: '/models/furniture/metal_office_desk_4k.gltf/metal_office_desk_4k.gltf',
+  },
+  {
+    assetId: id('steel_frame_shelves_01'),
+    kind: 'shelf',
+    label: '스틸 프레임 선반',
+    size: [1.0, 1.8, 0.4],
+    color: '#4a4a4a',
+    modelUrl: '/models/furniture/steel_frame_shelves_01_4k.gltf/steel_frame_shelves_01_4k.gltf',
+  },
+  {
+    assetId: id('steel_frame_shelves_03'),
+    kind: 'shelf',
+    label: '스틸 프레임 선반 (대형)',
+    size: [1.2, 2.0, 0.45],
+    color: '#3a3a3a',
+    modelUrl: '/models/furniture/steel_frame_shelves_03_4k.gltf/steel_frame_shelves_03_4k.gltf',
+  },
+  {
+    assetId: id('wooden_display_shelves_01'),
+    kind: 'shelf',
+    label: '원목 디스플레이 선반',
+    size: [0.9, 1.8, 0.35],
+    color: '#7a5c44',
+    modelUrl:
+      '/models/furniture/wooden_display_shelves_01_4k.gltf/wooden_display_shelves_01_4k.gltf',
+  },
+  {
+    assetId: id('vintage_cabinet_01'),
+    kind: 'cabinet',
+    label: '빈티지 캐비닛',
+    size: [1.2, 1.6, 0.5],
+    color: '#5b3a2a',
+    modelUrl: '/models/furniture/vintage_cabinet_01_4k.gltf/vintage_cabinet_01_4k.gltf',
   },
 ] as const;
 
