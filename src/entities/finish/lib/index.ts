@@ -1,1 +1,0 @@
-export { buildFinishMaterial } from './buildFinishMaterial';
