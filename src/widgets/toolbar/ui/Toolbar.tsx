@@ -10,7 +10,7 @@ export function Toolbar() {
     <header className="toolbar">
       <strong>3D Interior</strong>
       <div className="row">
-        <button onClick={addRoom}>+ 방 추가</button>
+        <button onClick={() => addRoom()}>+ 방 추가</button>
         <button aria-pressed={cameraMode === 'orbit'} onClick={() => setCameraMode('orbit')}>
           Orbit
         </button>

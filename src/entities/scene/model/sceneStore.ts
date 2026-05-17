@@ -67,7 +67,11 @@ interface SceneState {
   moveFixture: (id: string, position: Vec3) => void;
   rotateFixture: (id: string, rotationY: number) => void;
 
-  addRoom: () => void;
+  /**
+   * 새 방 추가. slot 이 있으면 그 셀 좌표로(placement UI 가 충돌을 미리 거른다는 전제),
+   * 없으면 기존 findFreeSlot() 자동 배치. 슬롯이 다른 방과 겹치면 silent return.
+   */
+  addRoom: (slot?: { cellX: number; cellZ: number }) => void;
   removeRoom: (id: string) => void;
   renameRoom: (id: string, name: string) => void;
   resizeRoom: (id: string, cellsW: number, cellsD: number) => void;
@@ -325,10 +329,13 @@ export const useSceneStore = create<SceneState>()(
       fixtures: state.fixtures.map((f) => (f.id === id ? { ...f, rotationY } : f)),
     })),
 
-  addRoom: () =>
+  addRoom: (slot) =>
     set((state) => {
       const { cellsW, cellsD } = NEW_ROOM_TEMPLATE;
-      const slot = findFreeSlot(state.rooms, cellsW, cellsD);
+      const resolved = slot ?? findFreeSlot(state.rooms, cellsW, cellsD);
+      // placement UI 는 미리 valid 검사 후 호출하지만, 자동 placement 경로(슬롯 미지정)와
+      // 외부 호출자 안전을 위해 store 가 한 번 더 검증한다.
+      if (hasOverlap({ ...resolved, cellsW, cellsD }, state.rooms)) return state;
       const name = pickRoomName(state.rooms);
       // 이름이 ROOM_NAME_POOL 의 '욕실' / '주방' 등이면 자동으로 kind 추론 →
       // 사용자가 룸 추가 후 매번 인스펙터에서 용도를 바꿔야 하는 마찰 제거.
@@ -336,8 +343,8 @@ export const useSceneStore = create<SceneState>()(
       const room: Room = {
         id: nextId('room'),
         name,
-        cellX: slot.cellX,
-        cellZ: slot.cellZ,
+        cellX: resolved.cellX,
+        cellZ: resolved.cellZ,
         ...NEW_ROOM_TEMPLATE,
         ...(inferredKind ? { kind: inferredKind } : {}),
       };

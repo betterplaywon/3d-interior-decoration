@@ -182,6 +182,34 @@ export function hasOverlap(
 }
 
 /**
+ * 월드 좌표 (x, z) 가 어떤 셀에 속하는지. floor 기반이라 음수 좌표도 일관되게 처리.
+ * room placement UI 가 마우스 ground point 를 셀 인덱스로 환산할 때 사용.
+ */
+export function worldPointToCell(worldX: number, worldZ: number): { cellX: number; cellZ: number } {
+  return {
+    cellX: Math.floor(worldX / CELL_SIZE),
+    cellZ: Math.floor(worldZ / CELL_SIZE),
+  };
+}
+
+/**
+ * 마우스 위치(월드 좌표)를 받아, 그 점을 중앙 근방으로 하는 cellsW×cellsD 방의 좌상단 셀을 반환.
+ * placement ghost 가 커서 중앙에 떠 있는 자연스러운 정렬을 위해 절반 만큼 빼는 게 핵심.
+ */
+export function snapRoomSlot(
+  worldX: number,
+  worldZ: number,
+  cellsW: number,
+  cellsD: number,
+): { cellX: number; cellZ: number } {
+  const c = worldPointToCell(worldX, worldZ);
+  return {
+    cellX: c.cellX - Math.floor(cellsW / 2),
+    cellZ: c.cellZ - Math.floor(cellsD / 2),
+  };
+}
+
+/**
  * 기존 방들 옆 빈 자리를 탐색해 새 방의 셀 좌표를 결정.
  * 단순 전략: 각 기존 방의 4방향으로 동일 크기 후보를 시도하고,
  * 겹치지 않으면 채택. 시드는 (0,0)에 가까운 후보 우선.
