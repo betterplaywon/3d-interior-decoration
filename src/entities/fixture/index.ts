@@ -11,5 +11,6 @@ export {
   findFirstFixtureByKind,
   fixtureShippingLabel,
   fixtureCategoryLabel,
+  isFixtureAllowedInRoomKind,
 } from './model';
 export { buildFixtureGroup, syncFixtureFromItem } from './lib';

@@ -24,6 +24,16 @@ export interface FixtureCatalogItem {
   color: string;
   /** 단품 단가(KRW). 마감재처럼 면적 단가가 아니라 개당. */
   priceKRW: number;
+  /**
+   * 이 위생도기가 어울리는 Room.kind 목록. 빈 배열이면 어디든 허용.
+   * 검증은 `isFixtureAllowedInRoomKind` 에서 — 카탈로그 패널이 활성 룸 기준으로
+   * 버튼 disable 여부를 결정한다.
+   *
+   * 타입을 `RoomKind[]` 가 아닌 `string[]` 으로 둔 이유: entities/fixture 가
+   * entities/room 을 import 하면 같은 레이어 cross-import (forbidden #1).
+   * 검증 함수 내부에서만 RoomKind 와 비교한다.
+   */
+  recommendedRoomKinds: readonly string[];
   /** public/ 기준 GLTF 경로. 없거나 로드 실패 시 박스로 폴백. */
   modelUrl?: string;
 }
