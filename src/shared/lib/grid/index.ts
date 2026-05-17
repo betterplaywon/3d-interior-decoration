@@ -9,5 +9,8 @@ export {
   clampToRoomBounds,
   hasOverlap,
   findFreeSlot,
+  worldPointToCell,
+  snapRoomSlot,
+  cellRectBounds,
 } from './grid';
 export { roomSurfaceAreas } from './surface';

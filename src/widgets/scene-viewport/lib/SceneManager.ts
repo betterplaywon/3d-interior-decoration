@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+import { cellRectBounds } from '@shared/lib/grid';
 import { buildRoomMesh, type Doorway, type Room } from '@entities/room';
 import { buildFurnitureGroup, syncGroupFromItem, type FurnitureItem } from '@entities/furniture';
 import {
@@ -50,6 +51,8 @@ export class SceneManager {
   private readonly groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private readonly raycaster = new THREE.Raycaster();
   private environmentHandle: { dispose: () => void } | null = null;
+  private roomGhost: THREE.Mesh | null = null;
+  private roomGhostKey = '';
 
   private currentMode: CameraMode = 'orbit';
   private pointerLock: PointerLockControls | null = null;
@@ -112,6 +115,50 @@ export class SceneManager {
       this.roomGroupById.set(room.id, mesh);
       this.scene.add(mesh);
     }
+  }
+
+  /**
+   * 방 placement 모드의 ghost preview. null 이면 메쉬 제거.
+   * 크기가 바뀌면 geometry 재생성, 색만 바뀌면 material.color 만 갱신해
+   * 매 mousemove 마다 새 BufferGeometry 를 만들지 않게 한다.
+   */
+  setRoomGhost(
+    ghost: { cellX: number; cellZ: number; cellsW: number; cellsD: number; valid: boolean } | null,
+  ): void {
+    if (!ghost) {
+      if (this.roomGhost) {
+        this.scene.remove(this.roomGhost);
+        disposeMesh(this.roomGhost);
+        this.roomGhost = null;
+        this.roomGhostKey = '';
+      }
+      return;
+    }
+    const b = cellRectBounds(ghost);
+    const color = ghost.valid ? 0x4ade80 : 0xef4444;
+    const key = `${ghost.cellsW}x${ghost.cellsD}`;
+    if (!this.roomGhost || this.roomGhostKey !== key) {
+      if (this.roomGhost) {
+        this.scene.remove(this.roomGhost);
+        disposeMesh(this.roomGhost);
+      }
+      const geom = new THREE.PlaneGeometry(b.width, b.depth);
+      geom.rotateX(-Math.PI / 2);
+      const mat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.renderOrder = 999;
+      this.roomGhost = mesh;
+      this.roomGhostKey = key;
+      this.scene.add(mesh);
+    } else {
+      (this.roomGhost.material as THREE.MeshBasicMaterial).color.set(color);
+    }
+    this.roomGhost.position.set(b.centerX, 0.01, b.centerZ);
   }
 
   /**
@@ -374,6 +421,10 @@ export class SceneManager {
       group.userData.disposed = true;
     }
     this.fixtureGroupById.clear();
+    if (this.roomGhost) {
+      disposeMesh(this.roomGhost);
+      this.roomGhost = null;
+    }
     this.environmentHandle?.dispose();
     this.renderer.dispose();
     if (this.renderer.domElement.parentElement === this.container) {

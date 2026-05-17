@@ -1,16 +1,24 @@
 import { useSceneStore } from '@entities/scene';
+import { useRoomPlacementActive, useRoomPlacementToggle } from '@features/room-placement';
 
 export function Toolbar() {
   const cameraMode = useSceneStore((s) => s.cameraMode);
   const setCameraMode = useSceneStore((s) => s.setCameraMode);
   const resetScene = useSceneStore((s) => s.resetScene);
-  const addRoom = useSceneStore((s) => s.addRoom);
+  const placementActive = useRoomPlacementActive();
+  const togglePlacement = useRoomPlacementToggle();
 
   return (
     <header className="toolbar">
       <strong>3D Interior</strong>
       <div className="row">
-        <button onClick={addRoom}>+ 방 추가</button>
+        <button
+          onClick={togglePlacement}
+          aria-pressed={placementActive}
+          title="그리드에서 빈 자리를 클릭해 방을 배치 (ESC/우클릭 취소)"
+        >
+          {placementActive ? '배치 중… (ESC 취소)' : '+ 방 추가'}
+        </button>
         <button aria-pressed={cameraMode === 'orbit'} onClick={() => setCameraMode('orbit')}>
           Orbit
         </button>
