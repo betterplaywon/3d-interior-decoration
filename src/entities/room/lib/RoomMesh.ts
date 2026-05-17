@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { CELL_SIZE } from '@shared/config';
-import { doorwaysOnWall, type WallSide } from '@shared/lib/grid';
+import { doorwaysOnWall, isWallOwned, type WallSide } from '@shared/lib/grid';
 import { buildTextureMaterial, findTexture, type TextureSurface } from '@entities/texture';
 import type { Doorway, Room } from '../model';
 
@@ -99,6 +99,9 @@ function buildWall(
   depth: number,
   material: THREE.Material,
 ): void {
+  // 공유 변에서 두 방이 동일 좌표에 벽을 동시에 올리면 z-fighting → id 작은 쪽만 그림
+  if (!isWallOwned(room, side, Array.from(roomsById.values()))) return;
+
   const minX = room.cellX * CELL_SIZE;
   const minZ = room.cellZ * CELL_SIZE;
   const maxX = minX + width;
