@@ -5,7 +5,7 @@ import { buildRoomMesh, type Doorway, type Room } from '@entities/room';
 import { buildFurnitureGroup, syncGroupFromItem, type FurnitureItem } from '@entities/furniture';
 import {
   buildLightingObject,
-  findLightingCatalog,
+  findLightingCatalogByAssetId,
   syncLightingFromItem,
   type LightingItem,
 } from '@entities/lighting';
@@ -160,7 +160,7 @@ export class SceneManager {
     for (const item of items) {
       let group = this.lightGroupById.get(item.id);
       if (!group) {
-        const catalog = findLightingCatalog(item.kind);
+        const catalog = findLightingCatalogByAssetId(item.assetId);
         if (!catalog) continue;
         group = buildLightingObject(item, catalog);
         this.lightGroupById.set(item.id, group);

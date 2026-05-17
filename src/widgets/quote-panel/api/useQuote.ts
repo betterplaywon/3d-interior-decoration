@@ -6,8 +6,8 @@ import {
   type ShippableQuoteLine,
   type TextureQuoteLine,
 } from '@entities/scene';
-import { findFixtureCatalog } from '@entities/fixture';
-import { findLightingCatalog } from '@entities/lighting';
+import { findFixtureCatalogByAssetId } from '@entities/fixture';
+import { findLightingCatalogByAssetId } from '@entities/lighting';
 import { findTexture } from '@entities/texture';
 import { roomSurfaceAreas } from '@shared/lib/grid';
 
@@ -72,14 +72,14 @@ export function useQuote(): QuoteResult {
 
     const lightingLines: ShippableQuoteLine[] = [];
     for (const light of lights) {
-      const catalog = findLightingCatalog(light.kind);
+      const catalog = findLightingCatalogByAssetId(light.assetId);
       if (!catalog) continue;
       lightingLines.push({ priceKRW: catalog.priceKRW, shipping: catalog.shipping });
     }
 
     const fixtureLines: ShippableQuoteLine[] = [];
     for (const fx of fixtures) {
-      const catalog = findFixtureCatalog(fx.kind);
+      const catalog = findFixtureCatalogByAssetId(fx.assetId);
       if (!catalog) continue;
       fixtureLines.push({ priceKRW: catalog.priceKRW, shipping: catalog.shipping });
     }
