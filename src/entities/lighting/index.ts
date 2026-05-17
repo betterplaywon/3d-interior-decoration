@@ -2,6 +2,7 @@ export type {
   LightingItem,
   LightingCatalogItem,
   LightingKind,
+  LightingAssetId,
   LightingShape,
   LightingCategory,
   LightingAnchor,

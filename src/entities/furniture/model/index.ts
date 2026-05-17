@@ -1,2 +1,7 @@
-export type { FurnitureKind, FurnitureCatalogItem, FurnitureItem } from './types';
+export type {
+  FurnitureKind,
+  FurnitureAssetId,
+  FurnitureCatalogItem,
+  FurnitureItem,
+} from './types';
 export { FURNITURE_CATALOG } from './catalog';
