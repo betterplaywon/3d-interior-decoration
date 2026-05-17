@@ -11,6 +11,11 @@ export interface GridRoomLike {
   cellZ: number;
   cellsW: number;
   cellsD: number;
+  /**
+   * 천장 높이(m). 벽 면적 산출(roomSurfaceAreas)에서만 사용되며,
+   * roomBounds 등 평면 계산에는 무관. entities.Room 이 동일 필드를 가져 structural 호환.
+   */
+  height: number;
 }
 
 export interface GridDoorwayLike {
