@@ -136,7 +136,7 @@
   border-radius: 4px;
 }
 
-.finish-row {
+.texture-row {
   display: grid;
   grid-template-columns: 28px 1fr auto;
   align-items: center;
@@ -147,38 +147,38 @@
   border-radius: 4px;
 }
 
-.finish-swatch {
+.texture-swatch {
   width: 28px;
   height: 28px;
   border-radius: 4px;
   border: 1px solid var(--border);
 }
 
-.finish-meta {
+.texture-meta {
   display: flex;
   flex-direction: column;
   gap: 1px;
   min-width: 0;
 }
 
-.finish-surface {
+.texture-surface {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
 }
 
-.finish-label {
+.texture-label {
   font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.finish-price {
+.texture-price {
   font-size: 11px;
 }
 
-.finish-row select {
+.texture-row select {
   max-width: 140px;
 }
