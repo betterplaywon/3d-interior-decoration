@@ -3,11 +3,11 @@ import { useSceneStore } from '@entities/scene';
 import { TEXTURE_CATALOG, findTexture, type TextureSurface } from '@entities/texture';
 import {
   categoryLabel,
-  findLightingCatalog,
+  findLightingCatalogByAssetId,
   shippingLabel,
 } from '@entities/lighting';
 import {
-  findFixtureCatalog,
+  findFixtureCatalogByAssetId,
   fixtureCategoryLabel,
   fixtureShippingLabel,
 } from '@entities/fixture';
@@ -200,7 +200,7 @@ function LightingInspector({ itemId }: LightingInspectorProps) {
   const removeLighting = useSceneStore((s) => s.removeLighting);
 
   if (!item) return null;
-  const catalog = findLightingCatalog(item.kind);
+  const catalog = findLightingCatalogByAssetId(item.assetId);
   if (!catalog) return null;
   const roomName = rooms.find((r) => r.id === item.roomId)?.name ?? '-';
 
@@ -243,7 +243,7 @@ function FixtureInspector({ itemId }: FixtureInspectorProps) {
   const rotateFixture = useSceneStore((s) => s.rotateFixture);
 
   if (!item) return null;
-  const catalog = findFixtureCatalog(item.kind);
+  const catalog = findFixtureCatalogByAssetId(item.assetId);
   if (!catalog) return null;
   const roomName = rooms.find((r) => r.id === item.roomId)?.name ?? '-';
 

@@ -1,6 +1,13 @@
-import type { ShippingMethod } from '@shared/model';
+import { asAssetId, type ShippingMethod } from '@shared/model';
 
-import type { LightingCatalogItem, LightingCategory } from './types';
+import type {
+  LightingAssetId,
+  LightingCatalogItem,
+  LightingCategory,
+  LightingKind,
+} from './types';
+
+const id = (slug: string): LightingAssetId => asAssetId<'lighting'>(`lighting/${slug}`);
 
 /**
  * 초기 조명 카탈로그. 카테고리(기본/장식)·조달방식(sea/air/domestic)·단가는
@@ -9,6 +16,7 @@ import type { LightingCatalogItem, LightingCategory } from './types';
  */
 export const LIGHTING_CATALOG: readonly LightingCatalogItem[] = [
   {
+    assetId: id('downlight_recessed_01'),
     kind: 'downlight',
     label: '매입 다운라이트',
     shape: 'spot',
@@ -23,6 +31,7 @@ export const LIGHTING_CATALOG: readonly LightingCatalogItem[] = [
     priceKRW: 45000,
   },
   {
+    assetId: id('pendant_designer_01'),
     kind: 'pendant',
     label: '디자이너 펜던트',
     shape: 'point',
@@ -35,6 +44,7 @@ export const LIGHTING_CATALOG: readonly LightingCatalogItem[] = [
     priceKRW: 780000,
   },
   {
+    assetId: id('stand_lamp_floor_01'),
     kind: 'standLamp',
     label: '플로어 스탠드',
     shape: 'point',
@@ -47,6 +57,7 @@ export const LIGHTING_CATALOG: readonly LightingCatalogItem[] = [
     priceKRW: 320000,
   },
   {
+    assetId: id('wall_sconce_01'),
     kind: 'wallSconce',
     label: '월 스콘스',
     shape: 'spot',
@@ -62,8 +73,18 @@ export const LIGHTING_CATALOG: readonly LightingCatalogItem[] = [
   },
 ] as const;
 
-export function findLightingCatalog(kind: string | null | undefined): LightingCatalogItem | null {
-  if (!kind) return null;
+export function findLightingCatalogByAssetId(
+  assetId: string | null | undefined,
+): LightingCatalogItem | null {
+  if (!assetId) return null;
+  return LIGHTING_CATALOG.find((c) => c.assetId === assetId) ?? null;
+}
+
+/**
+ * persist v1→v2 마이그레이션 전용. 같은 kind 의 첫 카탈로그 항목으로 강등.
+ * 신규 코드는 assetId 기반 `findLightingCatalogByAssetId` 를 사용할 것.
+ */
+export function findFirstLightingByKind(kind: LightingKind): LightingCatalogItem | null {
   return LIGHTING_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 

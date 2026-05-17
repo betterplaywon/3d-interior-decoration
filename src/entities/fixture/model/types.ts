@@ -1,4 +1,4 @@
-import type { ShippingMethod, Vec3 } from '@shared/model';
+import type { AssetId, ShippingMethod, Vec3 } from '@shared/model';
 
 export type FixtureKind = 'bathtub' | 'showerHead' | 'washbasin' | 'faucet' | 'toilet';
 
@@ -8,7 +8,14 @@ export type FixtureKind = 'bathtub' | 'showerHead' | 'washbasin' | 'faucet' | 't
  */
 export type FixtureCategory = 'sanitary' | 'faucet' | 'shower';
 
+/**
+ * 위생도기 도메인 nominal id. 같은 kind(욕조·세면대 등) 안에서 실제 에셋·단가를
+ * 구분하는 키.
+ */
+export type FixtureAssetId = AssetId<'fixture'>;
+
 export interface FixtureCatalogItem {
+  assetId: FixtureAssetId;
   kind: FixtureKind;
   label: string;
   category: FixtureCategory;
@@ -23,6 +30,7 @@ export interface FixtureCatalogItem {
 
 export interface FixtureItem {
   id: string;
+  assetId: FixtureAssetId;
   kind: FixtureKind;
   /** 어느 방에 소속된 위생도기인지. 배치/클램프 계산에 사용. */
   roomId: string;

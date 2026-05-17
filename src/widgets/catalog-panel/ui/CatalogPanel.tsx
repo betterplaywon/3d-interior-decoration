@@ -13,8 +13,8 @@ export function CatalogPanel() {
       <h3>가구</h3>
       <ul className="catalog">
         {FURNITURE_CATALOG.map((item) => (
-          <li key={item.kind}>
-            <button onClick={() => addFurniture(item.kind)}>{item.label}</button>
+          <li key={item.assetId}>
+            <button onClick={() => addFurniture(item.assetId)}>{item.label}</button>
           </li>
         ))}
       </ul>
@@ -22,8 +22,8 @@ export function CatalogPanel() {
       <h3>조명</h3>
       <ul className="catalog">
         {LIGHTING_CATALOG.map((item) => (
-          <li key={item.kind}>
-            <button onClick={() => addLighting(item.kind)}>{item.label}</button>
+          <li key={item.assetId}>
+            <button onClick={() => addLighting(item.assetId)}>{item.label}</button>
           </li>
         ))}
       </ul>
@@ -31,8 +31,8 @@ export function CatalogPanel() {
       <h3>위생도기</h3>
       <ul className="catalog">
         {FIXTURE_CATALOG.map((item) => (
-          <li key={item.kind}>
-            <button onClick={() => addFixture(item.kind)}>{item.label}</button>
+          <li key={item.assetId}>
+            <button onClick={() => addFixture(item.assetId)}>{item.label}</button>
           </li>
         ))}
       </ul>

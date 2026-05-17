@@ -1,4 +1,10 @@
-import type { ShippingMethod, Vec3 } from '@shared/model';
+import type { AssetId, ShippingMethod, Vec3 } from '@shared/model';
+
+/**
+ * 조명 도메인 nominal id. 같은 kind(다운라이트 등) 안에서 실제 에셋·단가를
+ * 구분하는 키.
+ */
+export type LightingAssetId = AssetId<'lighting'>;
 
 /**
  * 카탈로그 구분: 기본(ambient)은 전반 밝기용, 장식(decorative)은 데코·악센트.
@@ -21,6 +27,7 @@ export type LightingAnchor = 'ceiling' | 'floor';
 export type LightingKind = 'pendant' | 'downlight' | 'standLamp' | 'wallSconce';
 
 export interface LightingCatalogItem {
+  assetId: LightingAssetId;
   kind: LightingKind;
   label: string;
   shape: LightingShape;
@@ -43,6 +50,7 @@ export interface LightingCatalogItem {
 
 export interface LightingItem {
   id: string;
+  assetId: LightingAssetId;
   kind: LightingKind;
   /** 어느 방에 소속된 조명인지 — 방 삭제 시 함께 정리하기 위함. */
   roomId: string;

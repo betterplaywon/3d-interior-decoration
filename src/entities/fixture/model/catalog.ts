@@ -1,6 +1,8 @@
-import type { ShippingMethod } from '@shared/model';
+import { asAssetId, type ShippingMethod } from '@shared/model';
 
-import type { FixtureCatalogItem, FixtureCategory } from './types';
+import type { FixtureAssetId, FixtureCatalogItem, FixtureCategory, FixtureKind } from './types';
+
+const id = (slug: string): FixtureAssetId => asAssetId<'fixture'>(`fixture/${slug}`);
 
 /**
  * 초기 위생도기 카탈로그. 현업 인터뷰 기반 — 욕조·세면대 등 도기류는
@@ -12,6 +14,7 @@ import type { FixtureCatalogItem, FixtureCategory } from './types';
  */
 export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
   {
+    assetId: id('bathtub_classic_01'),
     kind: 'bathtub',
     label: '욕조',
     category: 'sanitary',
@@ -21,6 +24,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     priceKRW: 1_800_000,
   },
   {
+    assetId: id('washbasin_classic_01'),
     kind: 'washbasin',
     label: '세면대',
     category: 'sanitary',
@@ -30,6 +34,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     priceKRW: 520_000,
   },
   {
+    assetId: id('toilet_classic_01'),
     kind: 'toilet',
     label: '변기',
     category: 'sanitary',
@@ -39,6 +44,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     priceKRW: 380_000,
   },
   {
+    assetId: id('shower_head_01'),
     kind: 'showerHead',
     label: '샤워기',
     category: 'shower',
@@ -48,6 +54,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     priceKRW: 240_000,
   },
   {
+    assetId: id('faucet_01'),
     kind: 'faucet',
     label: '수전',
     category: 'faucet',
@@ -58,8 +65,18 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
   },
 ] as const;
 
-export function findFixtureCatalog(kind: string | null | undefined): FixtureCatalogItem | null {
-  if (!kind) return null;
+export function findFixtureCatalogByAssetId(
+  assetId: string | null | undefined,
+): FixtureCatalogItem | null {
+  if (!assetId) return null;
+  return FIXTURE_CATALOG.find((c) => c.assetId === assetId) ?? null;
+}
+
+/**
+ * persist v1→v2 마이그레이션 전용. 같은 kind 의 첫 카탈로그 항목으로 강등.
+ * 신규 코드는 assetId 기반 `findFixtureCatalogByAssetId` 를 사용할 것.
+ */
+export function findFirstFixtureByKind(kind: FixtureKind): FixtureCatalogItem | null {
   return FIXTURE_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 
