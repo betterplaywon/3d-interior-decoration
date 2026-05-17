@@ -128,6 +128,26 @@ export function doorwaysOnWall(
   return result;
 }
 
+/**
+ * 공유 변에서 이 방이 해당 면(side) 벽을 "그릴 권리"가 있는지.
+ * 같은 평면 위에 두 방이 동시에 PlaneGeometry를 올리면 z-fighting이 생기므로
+ * id 사전순이 작은 쪽 하나만 그리도록 강제 — 건축적으로도 공유 벽은 1장이 옳다.
+ * doorway 인방 중복도 같은 메커니즘으로 자동 해소.
+ */
+export function isWallOwned(
+  room: GridRoomLike,
+  side: WallSide,
+  rooms: readonly GridRoomLike[],
+): boolean {
+  for (const other of rooms) {
+    if (other.id === room.id) continue;
+    const edge = findSharedEdge(room, other);
+    if (!edge || edge.sideForA !== side) continue;
+    if (other.id < room.id) return false;
+  }
+  return true;
+}
+
 /** 가구를 방 내부 (벽 밖으로 나가지 않게) 클램프. doorway는 고려하지 않음. */
 export function clampToRoomBounds(position: Vec3, size: Vec3, room: GridRoomLike): Vec3 {
   const b = roomBounds(room);

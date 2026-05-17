@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Vec3 } from '@shared/model';
 import { findFreeSlot, findSharedEdge, hasOverlap, roomBounds } from '@shared/lib/grid';
 import {
@@ -147,7 +148,36 @@ function autoConnectDoorways(rooms: readonly Room[], newRoom: Room): Doorway[] {
 
 const init = initialState();
 
-export const useSceneStore = create<SceneState>((set) => ({
+/**
+ * persist 가 직렬화할 도메인 데이터 부분집합. selection/cameraMode 는
+ * 세션성이라 보존 가치가 낮고, 함수(actions)는 코드에서 매번 새로 만들므로 제외.
+ */
+type PersistedScene = Pick<
+  SceneState,
+  'rooms' | 'doorways' | 'furniture' | 'lights' | 'fixtures' | 'activeRoomId'
+>;
+
+/**
+ * 모든 id 의 숫자 suffix 최대값으로 idCounter 를 다시 맞춰 새 add 가 충돌 id 를 만들지 않게 한다.
+ * id 포맷은 nextId(prefix) → `${prefix}-${숫자}` 라는 전제.
+ */
+function restoreIdCounter(state: PersistedScene): void {
+  let max = 0;
+  const visit = (id: string) => {
+    const m = /-(\d+)$/.exec(id);
+    if (m) max = Math.max(max, Number(m[1]));
+  };
+  state.rooms.forEach((r) => visit(r.id));
+  state.doorways.forEach((d) => visit(d.id));
+  state.furniture.forEach((f) => visit(f.id));
+  state.lights.forEach((l) => visit(l.id));
+  state.fixtures.forEach((f) => visit(f.id));
+  idCounter = max;
+}
+
+export const useSceneStore = create<SceneState>()(
+  persist(
+    (set) => ({
   rooms: init.rooms,
   doorways: init.doorways,
   furniture: init.furniture,
@@ -458,4 +488,23 @@ export const useSceneStore = create<SceneState>((set) => ({
         selection: null,
       };
     }),
-}));
+  }),
+    {
+      name: '3d-interior-scene-v1',
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      // selection/cameraMode 는 세션성, 함수는 매번 새로 만들어지므로 제외
+      partialize: (state): PersistedScene => ({
+        rooms: state.rooms,
+        doorways: state.doorways,
+        furniture: state.furniture,
+        lights: state.lights,
+        fixtures: state.fixtures,
+        activeRoomId: state.activeRoomId,
+      }),
+      onRehydrateStorage: () => (rehydrated) => {
+        if (rehydrated) restoreIdCounter(rehydrated);
+      },
+    },
+  ),
+);

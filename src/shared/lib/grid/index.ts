@@ -5,6 +5,7 @@ export {
   roomBounds,
   findSharedEdge,
   doorwaysOnWall,
+  isWallOwned,
   clampToRoomBounds,
   hasOverlap,
   findFreeSlot,
