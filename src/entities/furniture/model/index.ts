@@ -4,4 +4,8 @@ export type {
   FurnitureCatalogItem,
   FurnitureItem,
 } from './types';
-export { FURNITURE_CATALOG } from './catalog';
+export {
+  FURNITURE_CATALOG,
+  findFurnitureCatalogByAssetId,
+  findFirstFurnitureByKind,
+} from './catalog';

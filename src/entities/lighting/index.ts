@@ -10,6 +10,8 @@ export type {
 export {
   LIGHTING_CATALOG,
   findLightingCatalog,
+  findLightingCatalogByAssetId,
+  findFirstLightingByKind,
   shippingLabel,
   categoryLabel,
 } from './model';

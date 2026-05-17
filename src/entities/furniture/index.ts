@@ -4,5 +4,9 @@ export type {
   FurnitureCatalogItem,
   FurnitureItem,
 } from './model';
-export { FURNITURE_CATALOG } from './model';
+export {
+  FURNITURE_CATALOG,
+  findFurnitureCatalogByAssetId,
+  findFirstFurnitureByKind,
+} from './model';
 export { buildFurnitureGroup, syncGroupFromItem } from './lib';

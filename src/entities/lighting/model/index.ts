@@ -7,4 +7,11 @@ export type {
   LightingCategory,
   LightingAnchor,
 } from './types';
-export { LIGHTING_CATALOG, findLightingCatalog, shippingLabel, categoryLabel } from './catalog';
+export {
+  LIGHTING_CATALOG,
+  findLightingCatalog,
+  findLightingCatalogByAssetId,
+  findFirstLightingByKind,
+  shippingLabel,
+  categoryLabel,
+} from './catalog';

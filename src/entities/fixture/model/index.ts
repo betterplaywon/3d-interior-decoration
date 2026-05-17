@@ -8,6 +8,8 @@ export type {
 export {
   FIXTURE_CATALOG,
   findFixtureCatalog,
+  findFixtureCatalogByAssetId,
+  findFirstFixtureByKind,
   fixtureShippingLabel,
   fixtureCategoryLabel,
 } from './catalog';
