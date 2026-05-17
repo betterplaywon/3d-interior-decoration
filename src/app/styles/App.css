@@ -16,7 +16,7 @@
 .main {
   flex: 1;
   display: grid;
-  grid-template-columns: 220px 1fr 260px;
+  grid-template-columns: 220px 1fr 260px 240px;
   min-height: 0;
 }
 
@@ -181,4 +181,120 @@
 
 .texture-row select {
   max-width: 140px;
+}
+
+/* 견적 패널 — 우측 독립 도크. 4라인 + 합계 + 마감재 상세 details.
+   포인트: 합계를 항상 헤더에 노출해 collapse 상태에서도 면접관이 숫자 변화를 봄. */
+.quote-dock {
+  border-left: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.quote-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.quote-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.quote-toggle h3 {
+  margin: 0;
+}
+
+.quote-caret {
+  display: inline-block;
+  color: var(--text-muted);
+  transition: transform 120ms ease-out;
+}
+
+.quote-caret.open {
+  transform: rotate(90deg);
+}
+
+.quote-total {
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote-lines {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 10px;
+}
+
+.quote-lines dt {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.quote-lines dd {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote-lines dd small {
+  font-size: 11px;
+}
+
+.quote-breakdown {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.quote-breakdown summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.quote-detail-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.quote-detail-list li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quote-detail-room {
+  font-weight: 500;
+}
+
+.quote-detail-calc {
+  grid-column: 1 / 2;
+  font-size: 11px;
+}
+
+.quote-detail-sub {
+  grid-column: 2 / 3;
+  grid-row: 1 / 3;
+  align-self: center;
 }
