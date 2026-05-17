@@ -54,6 +54,14 @@ export class SceneManager {
   private roomGhost: THREE.Mesh | null = null;
   private roomGhostKey = '';
 
+  /** 활성 방 focus 보간 상태. raf 루프 안에서 t 가 1 도달하면 null 로 클리어. */
+  private focusTween: {
+    fromTarget: THREE.Vector3;
+    toTarget: THREE.Vector3;
+    elapsed: number;
+    duration: number;
+  } | null = null;
+
   private currentMode: CameraMode = 'orbit';
   private pointerLock: PointerLockControls | null = null;
   private pointerLockClickHandler: (() => void) | null = null;
@@ -159,6 +167,37 @@ export class SceneManager {
       (this.roomGhost.material as THREE.MeshBasicMaterial).color.set(color);
     }
     this.roomGhost.position.set(b.centerX, 0.01, b.centerZ);
+  }
+
+  /**
+   * 활성 방 중심으로 카메라 target 을 옮긴다. camera position 은 target 의 평행 이동량만큼
+   * 함께 따라가서 거리·각도 보존 — '방 단위 우주 안에서 orbit' 멘탈 모델.
+   * instant 면 보간 없이 즉시 적용(첫 mount 시 깜빡임 회피용). 1인칭 모드는 PointerLock 이
+   * 입력을 가져가므로 skip — 모드 복귀 시 다시 호출되도록 호출자가 책임.
+   */
+  focusOnRoom(
+    room: { cellX: number; cellZ: number; cellsW: number; cellsD: number },
+    options: { instant?: boolean } = {},
+  ): void {
+    if (this.currentMode === 'first') return;
+    const b = cellRectBounds(room);
+    const toTarget = new THREE.Vector3(b.centerX, this.controls.target.y, b.centerZ);
+    if (options.instant) {
+      const delta = toTarget.clone().sub(this.controls.target);
+      this.controls.target.copy(toTarget);
+      this.camera.position.add(delta);
+      this.controls.update();
+      this.focusTween = null;
+      return;
+    }
+    // 같은 자리면 무시 — 작은 epsilon 미만 차이도 tween 안 돌림.
+    if (this.controls.target.distanceToSquared(toTarget) < 1e-6) return;
+    this.focusTween = {
+      fromTarget: this.controls.target.clone(),
+      toTarget,
+      elapsed: 0,
+      duration: 0.35,
+    };
   }
 
   /**
@@ -327,28 +366,43 @@ export class SceneManager {
     }
   }
 
+  /**
+   * Orbit/Top 모드는 카메라 거리·각도 프리셋을 강제하되, 활성 방 focus 는 보존.
+   * 절대값 대신 "현재 target.xz 위에 ORBIT_TARGET / ORBIT_CAMERA_POS 의 상대 offset 을 더한
+   * 위치" 로 적용 — 멀리 떨어진 방에서 모드 전환해도 원점으로 점프하지 않는다.
+   */
   private applyOrbitMode(): void {
     this.controls.enabled = true;
     this.controls.minPolarAngle = 0;
     this.controls.maxPolarAngle = Math.PI;
     this.controls.enableRotate = true;
-    this.camera.position.copy(ORBIT_CAMERA_POS);
-    this.controls.target.copy(ORBIT_TARGET);
+    const center = this.activeCenter();
+    this.controls.target.set(center.x, ORBIT_TARGET.y, center.z);
+    this.camera.position.set(
+      center.x + (ORBIT_CAMERA_POS.x - ORBIT_TARGET.x),
+      ORBIT_CAMERA_POS.y,
+      center.z + (ORBIT_CAMERA_POS.z - ORBIT_TARGET.z),
+    );
     this.controls.update();
   }
 
-  /**
-   * Top-down 뷰: OrbitControls를 그대로 두되 회전을 막아 평면도처럼 보이게 한다.
-   * 카메라 인스턴스 교체(Ortho)는 raycaster/picking 검증이 더 필요해 보류.
-   */
   private applyTopMode(): void {
     this.controls.enabled = true;
     this.controls.enableRotate = false;
     this.controls.minPolarAngle = 0;
     this.controls.maxPolarAngle = 0;
-    this.camera.position.copy(TOP_CAMERA_POS);
-    this.controls.target.copy(TOP_TARGET);
+    const center = this.activeCenter();
+    this.controls.target.set(center.x, TOP_TARGET.y, center.z);
+    this.camera.position.set(center.x, TOP_CAMERA_POS.y, center.z + 0.0001);
     this.controls.update();
+  }
+
+  /**
+   * 현재 controls.target 의 xz 만 추려 활성 방 중심으로 본다. focusOnRoom 직후 호출되면
+   * 그 방, 호출 전이면 원점.
+   */
+  private activeCenter(): { x: number; z: number } {
+    return { x: this.controls.target.x, z: this.controls.target.z };
   }
 
   private enterFirstPerson(): void {
@@ -438,12 +492,30 @@ export class SceneManager {
       if (this.currentMode === 'first') {
         this.updateFirstPerson(dt);
       } else {
+        this.advanceFocusTween(dt);
         this.controls.update(dt);
       }
       this.renderer.render(this.scene, this.camera);
       this.raf = requestAnimationFrame(tick);
     };
     this.raf = requestAnimationFrame(tick);
+  }
+
+  /**
+   * 카메라 focus 보간. ease-out cubic 으로 감속. tween 진행 중 사용자가 OrbitControls 로
+   * 카메라를 돌리고 있다면 그 변화도 반영되도록 매 프레임 offset 을 다시 캡처 —
+   * 우리는 target 만 옮기고 camera position 은 target + offset 으로 동기화한다.
+   */
+  private advanceFocusTween(dt: number): void {
+    const tw = this.focusTween;
+    if (!tw) return;
+    const currentOffset = this.camera.position.clone().sub(this.controls.target);
+    tw.elapsed += dt;
+    const t = Math.min(1, tw.elapsed / tw.duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    this.controls.target.lerpVectors(tw.fromTarget, tw.toTarget, eased);
+    this.camera.position.copy(this.controls.target).add(currentOffset);
+    if (t >= 1) this.focusTween = null;
   }
 
   private setupResize(): void {
