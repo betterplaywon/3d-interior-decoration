@@ -39,6 +39,10 @@
   min-height: 0;
 }
 
+.viewport [data-mode='room-placement'] {
+  cursor: crosshair;
+}
+
 .panel h3 {
   margin: 0 0 8px;
   font-size: 13px;
