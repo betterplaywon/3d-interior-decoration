@@ -80,6 +80,12 @@ interface SceneState {
   /** 두 방이 인접하다면 그 공유 변에 doorway를 토글한다. */
   toggleDoorway: (roomAId: string, roomBId: string) => void;
   /**
+   * 도어웨이 위치(offsetCells)와 너비(widthCells)를 한 번에 갱신.
+   * 두 값이 서로 종속적이라 단일 action 으로 합침 — UI 가 1차 검증, store 가 sharedLength
+   * 범위로 2차 클램프하는 안전망. 공유 변이 없어진 doorway 라면 silent no-op.
+   */
+  setDoorwayPosition: (doorwayId: string, offsetCells: number, widthCells: number) => void;
+  /**
    * 특정 면(바닥/벽/천장)에 텍스처를 적용. textureId가 카탈로그에 없거나
    * 해당 면 카테고리에 호환되지 않으면 무시한다(잘못된 조합 방어).
    */
@@ -475,6 +481,28 @@ export const useSceneStore = create<SceneState>()(
         widthCells: width,
       };
       return { doorways: [...state.doorways, doorway] };
+    }),
+
+  setDoorwayPosition: (doorwayId, offsetCells, widthCells) =>
+    set((state) => {
+      const doorway = state.doorways.find((d) => d.id === doorwayId);
+      if (!doorway) return state;
+      const a = state.rooms.find((r) => r.id === doorway.roomAId);
+      const b = state.rooms.find((r) => r.id === doorway.roomBId);
+      if (!a || !b) return state;
+      const edge = findSharedEdge(a, b);
+      if (!edge) return state;
+      const sharedLength = edge.to - edge.from;
+      // width 가 sharedLength 를 초과하면 sharedLength 에 맞추고, offset 은 [0, sharedLength-width] 로 클램프.
+      // 슬라이더 max 가 동적이라 1차 방어선이지만, 동시 갱신 race 나 외부 호출 대비 store 도 강제.
+      const clampedWidth = Math.max(1, Math.min(widthCells, sharedLength));
+      const clampedOffset = Math.max(0, Math.min(offsetCells, sharedLength - clampedWidth));
+      if (clampedWidth === doorway.widthCells && clampedOffset === doorway.offsetCells) return state;
+      return {
+        doorways: state.doorways.map((d) =>
+          d.id === doorwayId ? { ...d, offsetCells: clampedOffset, widthCells: clampedWidth } : d,
+        ),
+      };
     }),
 
   selectFurniture: (id) =>
