@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useSceneStore } from '@entities/scene';
+import type { Room } from '@entities/room';
 import { SceneManager } from '../lib/SceneManager';
+
+/** 활성 방의 follow-trigger key — 좌표/크기 중 하나라도 바뀌면 focus 재호출. */
+function roomFocusKey(room: Room | undefined): string {
+  if (!room) return '';
+  return `${room.id}:${room.cellX}:${room.cellZ}:${room.cellsW}:${room.cellsD}`;
+}
 
 /**
  * 컨테이너 DOM에 SceneManager를 마운트하고, store의 rooms/doorways/furniture
@@ -21,6 +28,13 @@ export function useSceneManager(container: HTMLElement | null) {
     manager.syncFurniture(state.furniture);
     manager.syncLights(state.lights);
     manager.syncFixtures(state.fixtures);
+    // 첫 mount 는 instant 로 — orbit/top 기본 카메라가 원점에서 시작하므로
+    // 활성 방이 멀리 있어도 깜빡임 없이 그 자리로 바로 점프.
+    const initialActive = state.rooms.find((r) => r.id === state.activeRoomId);
+    if (initialActive) manager.focusOnRoom(initialActive, { instant: true });
+
+    let prevFocusKey = roomFocusKey(initialActive);
+    let prevCameraMode = state.cameraMode;
 
     const unsub = useSceneStore.subscribe((s, prev) => {
       const roomsChanged = s.rooms !== prev.rooms || s.doorways !== prev.doorways;
@@ -32,6 +46,20 @@ export function useSceneManager(container: HTMLElement | null) {
       if (s.furniture !== prev.furniture) manager.syncFurniture(s.furniture);
       if (s.lights !== prev.lights) manager.syncLights(s.lights);
       if (s.fixtures !== prev.fixtures) manager.syncFixtures(s.fixtures);
+
+      const activeRoom = s.rooms.find((r) => r.id === s.activeRoomId);
+      const nextKey = roomFocusKey(activeRoom);
+      // 활성 방 자체나 그 방의 좌표·크기 변화에만 반응. cameraMode 전환은 SceneManager 내부에서
+      // 이미 현재 target.xz 를 보존하므로 별도 focus 호출 불필요지만, 새 모드가 일관된 거리감을
+      // 잡도록 instant 한 번 더 호출해 둠.
+      if (activeRoom && nextKey !== prevFocusKey) {
+        manager.focusOnRoom(activeRoom);
+        prevFocusKey = nextKey;
+      }
+      if (s.cameraMode !== prevCameraMode) {
+        if (activeRoom) manager.focusOnRoom(activeRoom, { instant: true });
+        prevCameraMode = s.cameraMode;
+      }
     });
 
     return () => {
