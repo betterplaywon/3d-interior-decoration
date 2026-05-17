@@ -1,4 +1,4 @@
-import { ROOM_KIND_LABEL, type Room, type RoomKind } from '@entities/room';
+import { ROOM_KIND_LABEL, type Doorway, type Room, type RoomKind } from '@entities/room';
 import { useSceneStore } from '@entities/scene';
 import { TEXTURE_CATALOG, findTexture, type TextureSurface } from '@entities/texture';
 import {
@@ -99,6 +99,7 @@ function RoomInspector({ room }: RoomInspectorProps) {
   const resizeRoom = useSceneStore((s) => s.resizeRoom);
   const removeRoom = useSceneStore((s) => s.removeRoom);
   const toggleDoorway = useSceneStore((s) => s.toggleDoorway);
+  const setDoorwayPosition = useSceneStore((s) => s.setDoorwayPosition);
   const setActiveRoom = useSceneStore((s) => s.setActiveRoom);
   const setRoomKind = useSceneStore((s) => s.setRoomKind);
   const activeRoomId = useSceneStore((s) => s.activeRoomId);
@@ -176,17 +177,27 @@ function RoomInspector({ room }: RoomInspectorProps) {
       ) : (
         <ul className="connections">
           {neighbors.map((other) => {
-            const connected = doorways.some(
+            const doorway = doorways.find(
               (d) =>
                 (d.roomAId === room.id && d.roomBId === other.id) ||
                 (d.roomAId === other.id && d.roomBId === room.id),
             );
             return (
               <li key={other.id}>
-                <span>{other.name}</span>
-                <button onClick={() => toggleDoorway(room.id, other.id)}>
-                  {connected ? '문 닫기' : '문 열기'}
-                </button>
+                <div className="connection-head">
+                  <span>{other.name}</span>
+                  <button onClick={() => toggleDoorway(room.id, other.id)}>
+                    {doorway ? '문 닫기' : '문 열기'}
+                  </button>
+                </div>
+                {doorway && (
+                  <DoorwayEditor
+                    doorway={doorway}
+                    roomA={room}
+                    roomB={other}
+                    onChange={(off, w) => setDoorwayPosition(doorway.id, off, w)}
+                  />
+                )}
               </li>
             );
           })}
@@ -199,6 +210,52 @@ function RoomInspector({ room }: RoomInspectorProps) {
         </button>
       </div>
     </section>
+  );
+}
+
+interface DoorwayEditorProps {
+  doorway: Doorway;
+  roomA: Room;
+  roomB: Room;
+  onChange: (offsetCells: number, widthCells: number) => void;
+}
+
+/**
+ * 도어웨이 위치(offset) / 너비(width) 슬라이더. sharedLength 가 두 슬라이더 max 의 기준 —
+ * width 가 늘면 offset 의 max 가 줄어드는 종속 관계라 onChange 마다 양쪽 값을 함께 보낸다.
+ */
+function DoorwayEditor({ doorway, roomA, roomB, onChange }: DoorwayEditorProps) {
+  const edge = findSharedEdge(roomA, roomB);
+  if (!edge) return null;
+  const sharedLength = edge.to - edge.from;
+  const maxOffset = Math.max(0, sharedLength - doorway.widthCells);
+  const maxWidth = Math.max(1, sharedLength - doorway.offsetCells);
+
+  return (
+    <div className="doorway-editor">
+      <label className="field">
+        <span>위치 {doorway.offsetCells} / {maxOffset}</span>
+        <input
+          type="range"
+          min={0}
+          max={maxOffset}
+          step={1}
+          value={doorway.offsetCells}
+          onChange={(e) => onChange(Number(e.target.value), doorway.widthCells)}
+        />
+      </label>
+      <label className="field">
+        <span>너비 {doorway.widthCells} / {sharedLength}</span>
+        <input
+          type="range"
+          min={1}
+          max={maxWidth}
+          step={1}
+          value={doorway.widthCells}
+          onChange={(e) => onChange(doorway.offsetCells, Number(e.target.value))}
+        />
+      </label>
+    </div>
   );
 }
 

@@ -132,12 +132,35 @@
 
 .connections li {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
   padding: 4px 6px;
   background: rgba(255, 255, 255, 0.03);
   border-radius: 4px;
+}
+
+.connection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.doorway-editor {
+  display: grid;
+  gap: 4px;
+}
+
+.doorway-editor .field {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--muted, #9aa);
+}
+
+.doorway-editor input[type='range'] {
+  width: 100%;
 }
 
 .texture-row {
