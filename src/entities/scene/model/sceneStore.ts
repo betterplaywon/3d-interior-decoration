@@ -26,6 +26,7 @@ import {
   type FixtureItem,
 } from '@entities/fixture';
 import type { CameraMode, Selection } from './types';
+import { migrateV1ToV2 } from './migrations/v1ToV2';
 
 interface SceneState {
   rooms: Room[];
@@ -494,7 +495,7 @@ export const useSceneStore = create<SceneState>()(
   }),
     {
       name: '3d-interior-scene-v1',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => localStorage),
       // selection/cameraMode 는 세션성, 함수는 매번 새로 만들어지므로 제외
       partialize: (state): PersistedScene => ({
@@ -505,6 +506,12 @@ export const useSceneStore = create<SceneState>()(
         fixtures: state.fixtures,
         activeRoomId: state.activeRoomId,
       }),
+      // assetId 도입(v2) 이전 데이터는 인스턴스에 assetId 필드가 없다.
+      // migrateV1ToV2 가 같은 kind 의 첫 카탈로그 항목으로 부드럽게 강등.
+      migrate: (persisted, version) => {
+        if (version < 2) return migrateV1ToV2(persisted) as unknown as PersistedScene;
+        return persisted as PersistedScene;
+      },
       onRehydrateStorage: () => (rehydrated) => {
         if (rehydrated) restoreIdCounter(rehydrated);
       },
