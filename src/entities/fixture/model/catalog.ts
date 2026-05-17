@@ -22,6 +22,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     size: [1.6, 0.6, 0.75],
     color: '#f1efe7',
     priceKRW: 1_800_000,
+    recommendedRoomKinds: ['bathroom'],
   },
   {
     assetId: id('washbasin_classic_01'),
@@ -32,6 +33,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     size: [0.6, 0.85, 0.5],
     color: '#ececec',
     priceKRW: 520_000,
+    recommendedRoomKinds: ['bathroom'],
   },
   {
     assetId: id('toilet_classic_01'),
@@ -42,6 +44,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     size: [0.4, 0.8, 0.7],
     color: '#fafafa',
     priceKRW: 380_000,
+    recommendedRoomKinds: ['bathroom'],
   },
   {
     assetId: id('shower_head_01'),
@@ -52,6 +55,7 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     size: [0.2, 1.8, 0.2],
     color: '#c8c8cc',
     priceKRW: 240_000,
+    recommendedRoomKinds: ['bathroom'],
   },
   {
     assetId: id('faucet_01'),
@@ -62,6 +66,8 @@ export const FIXTURE_CATALOG: readonly FixtureCatalogItem[] = [
     size: [0.15, 0.3, 0.15],
     color: '#d6d6da',
     priceKRW: 180_000,
+    // 주방 싱크 수전 케이스 — 욕실·주방 양쪽에 허용.
+    recommendedRoomKinds: ['bathroom', 'kitchen'],
   },
 ] as const;
 
@@ -78,6 +84,24 @@ export function findFixtureCatalogByAssetId(
  */
 export function findFirstFixtureByKind(kind: FixtureKind): FixtureCatalogItem | null {
   return FIXTURE_CATALOG.find((c) => c.kind === kind) ?? null;
+}
+
+/**
+ * 룸 용도(RoomKind 문자열)에 이 위생도기가 허용되는지.
+ * - 'other' 는 사용자가 분류를 정하지 않은 자유 룸 → 항상 허용 (UX 막힘 방지).
+ * - recommendedRoomKinds 가 비면 제약 없음 (미래 확장 여지).
+ *
+ * 인자 `roomKind` 를 `string` 으로 받는 이유: entities/fixture 가 entities/room 의
+ * RoomKind union 을 import 하면 같은 레이어 cross-import (forbidden #1).
+ * 호출부(scene store / catalog panel) 가 Room.kind 를 그대로 넘기면 동작이 같다.
+ */
+export function isFixtureAllowedInRoomKind(
+  item: FixtureCatalogItem,
+  roomKind: string,
+): boolean {
+  if (roomKind === 'other') return true;
+  if (item.recommendedRoomKinds.length === 0) return true;
+  return item.recommendedRoomKinds.includes(roomKind);
 }
 
 const SHIPPING_LABEL: Record<ShippingMethod, string> = {

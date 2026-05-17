@@ -6,8 +6,10 @@ import {
   DEFAULT_ROOM_TEMPLATE,
   NEW_ROOM_TEMPLATE,
   ROOM_NAME_POOL,
+  inferRoomKindFromName,
   type Doorway,
   type Room,
+  type RoomKind,
 } from '@entities/room';
 import {
   findFurnitureCatalogByAssetId,
@@ -22,11 +24,13 @@ import {
 } from '@entities/lighting';
 import {
   findFixtureCatalogByAssetId,
+  isFixtureAllowedInRoomKind,
   type FixtureAssetId,
   type FixtureItem,
 } from '@entities/fixture';
 import type { CameraMode, Selection } from './types';
 import { migrateV1ToV2 } from './migrations/v1ToV2';
+import { migrateV2ToV3 } from './migrations/v2ToV3';
 
 interface SceneState {
   rooms: Room[];
@@ -54,8 +58,9 @@ interface SceneState {
   moveLighting: (id: string, position: Vec3) => void;
 
   /**
-   * 위생도기를 활성 룸 중앙(바닥)에 추가. 룸 타입(욕실/주방) 제약은 P0에서
-   * 도입하지 않아 어느 방에든 배치 가능 — 후속 작업에서 룸 분류 도입 시 제약화.
+   * 위생도기를 활성 룸 중앙(바닥)에 추가. 활성 룸의 kind 가 카탈로그의
+   * recommendedRoomKinds 와 호환되지 않으면 silent 가 아닌 console.warn 후 무시 —
+   * UI(카탈로그 패널)에서 미리 disable 시키므로 여기까지 도달하는 건 비정상 경로.
    */
   addFixture: (assetId: FixtureAssetId, position?: Vec3) => void;
   removeFixture: (id: string) => void;
@@ -66,6 +71,8 @@ interface SceneState {
   removeRoom: (id: string) => void;
   renameRoom: (id: string, name: string) => void;
   resizeRoom: (id: string, cellsW: number, cellsD: number) => void;
+  /** 룸 용도(욕실/주방/…) 수동 변경. 위생도기 호환 검증의 기준이 된다. */
+  setRoomKind: (id: string, kind: RoomKind) => void;
   /** 두 방이 인접하다면 그 공유 변에 doorway를 토글한다. */
   toggleDoorway: (roomAId: string, roomBId: string) => void;
   /**
@@ -274,6 +281,12 @@ export const useSceneStore = create<SceneState>()(
       const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
       const room = state.rooms.find((r) => r.id === targetRoomId);
       if (!room) return state;
+      if (!isFixtureAllowedInRoomKind(catalog, room.kind)) {
+        console.warn(
+          `[scene] ${catalog.label} 은(는) "${room.name}"(${room.kind}) 룸에 추가할 수 없습니다.`,
+        );
+        return state;
+      }
       const b = roomBounds(room);
       const initialPos: Vec3 = position ?? [b.centerX, 0, b.centerZ];
       const item: FixtureItem = {
@@ -316,12 +329,17 @@ export const useSceneStore = create<SceneState>()(
     set((state) => {
       const { cellsW, cellsD } = NEW_ROOM_TEMPLATE;
       const slot = findFreeSlot(state.rooms, cellsW, cellsD);
+      const name = pickRoomName(state.rooms);
+      // 이름이 ROOM_NAME_POOL 의 '욕실' / '주방' 등이면 자동으로 kind 추론 →
+      // 사용자가 룸 추가 후 매번 인스펙터에서 용도를 바꿔야 하는 마찰 제거.
+      const inferredKind = inferRoomKindFromName(name);
       const room: Room = {
         id: nextId('room'),
-        name: pickRoomName(state.rooms),
+        name,
         cellX: slot.cellX,
         cellZ: slot.cellZ,
         ...NEW_ROOM_TEMPLATE,
+        ...(inferredKind ? { kind: inferredKind } : {}),
       };
       const newDoors = autoConnectDoorways(state.rooms, room);
       return {
@@ -417,6 +435,11 @@ export const useSceneStore = create<SceneState>()(
       };
     }),
 
+  setRoomKind: (id, kind) =>
+    set((state) => ({
+      rooms: state.rooms.map((r) => (r.id === id ? { ...r, kind } : r)),
+    })),
+
   toggleDoorway: (roomAId, roomBId) =>
     set((state) => {
       const a = state.rooms.find((r) => r.id === roomAId);
@@ -495,7 +518,7 @@ export const useSceneStore = create<SceneState>()(
   }),
     {
       name: '3d-interior-scene-v1',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       // selection/cameraMode 는 세션성, 함수는 매번 새로 만들어지므로 제외
       partialize: (state): PersistedScene => ({
@@ -506,11 +529,14 @@ export const useSceneStore = create<SceneState>()(
         fixtures: state.fixtures,
         activeRoomId: state.activeRoomId,
       }),
-      // assetId 도입(v2) 이전 데이터는 인스턴스에 assetId 필드가 없다.
-      // migrateV1ToV2 가 같은 kind 의 첫 카탈로그 항목으로 부드럽게 강등.
+      // v1: assetId 도입 이전 — 같은 kind 의 첫 카탈로그 항목으로 강등.
+      // v2: Room.kind 도입 이전 — 이름에서 추론, 매칭 안 되면 'other'.
+      // 두 마이그레이션은 순차 적용 (v1 → v2 → v3).
       migrate: (persisted, version) => {
-        if (version < 2) return migrateV1ToV2(persisted) as unknown as PersistedScene;
-        return persisted as PersistedScene;
+        let data: unknown = persisted;
+        if (version < 2) data = migrateV1ToV2(data);
+        if (version < 3) data = migrateV2ToV3(data);
+        return data as PersistedScene;
       },
       onRehydrateStorage: () => (rehydrated) => {
         if (rehydrated) restoreIdCounter(rehydrated);

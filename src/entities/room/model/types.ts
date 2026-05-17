@@ -1,4 +1,18 @@
 /**
+ * 방의 용도 분류. 시각화에는 영향 없는 순수 도메인 메타로,
+ * 위생도기·조명 카탈로그가 "어느 룸에 적합한가" 를 검증하는 키로 쓴다.
+ * 'other' 는 ROOM_NAME_POOL 에 없는 자유 입력 룸을 위한 fallback —
+ * 호환 검증에서 항상 통과시켜 사용자가 길이 막히지 않게 한다.
+ */
+export type RoomKind =
+  | 'bathroom'
+  | 'kitchen'
+  | 'bedroom'
+  | 'living'
+  | 'balcony'
+  | 'other';
+
+/**
  * 방은 그리드 좌표계에서 정의된다.
  * cellX/cellZ: 좌상단(또는 -x, -z 쪽) 모서리의 셀 인덱스
  * cellsW/cellsD: x/z 방향 셀 개수 (>=1)
@@ -7,6 +21,11 @@
 export interface Room {
   id: string;
   name: string;
+  /**
+   * 방 용도. 위생도기 카탈로그의 recommendedRoomKinds 와 매칭해
+   * 카탈로그 패널에서 "여기엔 추가 불가" 를 disable 처리하는 데 쓴다.
+   */
+  kind: RoomKind;
   cellX: number;
   cellZ: number;
   cellsW: number;

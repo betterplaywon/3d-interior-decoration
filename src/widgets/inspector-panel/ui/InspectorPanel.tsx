@@ -1,4 +1,4 @@
-import type { Room } from '@entities/room';
+import { ROOM_KIND_LABEL, type Room, type RoomKind } from '@entities/room';
 import { useSceneStore } from '@entities/scene';
 import { TEXTURE_CATALOG, findTexture, type TextureSurface } from '@entities/texture';
 import {
@@ -100,7 +100,10 @@ function RoomInspector({ room }: RoomInspectorProps) {
   const removeRoom = useSceneStore((s) => s.removeRoom);
   const toggleDoorway = useSceneStore((s) => s.toggleDoorway);
   const setActiveRoom = useSceneStore((s) => s.setActiveRoom);
+  const setRoomKind = useSceneStore((s) => s.setRoomKind);
   const activeRoomId = useSceneStore((s) => s.activeRoomId);
+
+  const kindOptions = Object.entries(ROOM_KIND_LABEL) as ReadonlyArray<[RoomKind, string]>;
 
   const neighbors = rooms.filter((other) => {
     if (other.id === room.id) return false;
@@ -113,6 +116,19 @@ function RoomInspector({ room }: RoomInspectorProps) {
       <label className="field">
         이름
         <input type="text" value={room.name} onChange={(e) => renameRoom(room.id, e.target.value)} />
+      </label>
+      <label className="field">
+        용도
+        <select
+          value={room.kind}
+          onChange={(e) => setRoomKind(room.id, e.target.value as RoomKind)}
+        >
+          {kindOptions.map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
       </label>
       <div className="field-row">
         <label className="field">

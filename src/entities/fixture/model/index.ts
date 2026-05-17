@@ -11,4 +11,5 @@ export {
   findFirstFixtureByKind,
   fixtureShippingLabel,
   fixtureCategoryLabel,
+  isFixtureAllowedInRoomKind,
 } from './catalog';
