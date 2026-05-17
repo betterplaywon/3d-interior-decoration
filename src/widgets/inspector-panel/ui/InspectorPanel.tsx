@@ -1,6 +1,6 @@
 import type { Room } from '@entities/room';
 import { useSceneStore } from '@entities/scene';
-import { FINISH_CATALOG, findFinish, type FinishSurface } from '@entities/finish';
+import { TEXTURE_CATALOG, findTexture, type TextureSurface } from '@entities/texture';
 import {
   categoryLabel,
   findLightingCatalog,
@@ -13,7 +13,7 @@ import {
 } from '@entities/fixture';
 import { findSharedEdge } from '@shared/lib/grid';
 
-const SURFACE_LABEL: Record<FinishSurface, string> = {
+const SURFACE_LABEL: Record<TextureSurface, string> = {
   floor: '바닥',
   wall: '벽',
   ceiling: '천장',
@@ -149,10 +149,10 @@ function RoomInspector({ room }: RoomInspectorProps) {
         </dd>
       </dl>
 
-      <h4 className="subhead">마감재</h4>
-      <FinishPicker roomId={room.id} surface="floor" currentId={room.floorFinishId} />
-      <FinishPicker roomId={room.id} surface="wall" currentId={room.wallFinishId} />
-      <FinishPicker roomId={room.id} surface="ceiling" currentId={room.ceilingFinishId} />
+      <h4 className="subhead">텍스처</h4>
+      <TexturePicker roomId={room.id} surface="floor" currentId={room.floorTextureId} />
+      <TexturePicker roomId={room.id} surface="wall" currentId={room.wallTextureId} />
+      <TexturePicker roomId={room.id} surface="ceiling" currentId={room.ceilingTextureId} />
 
       <h4 className="subhead">연결</h4>
       {neighbors.length === 0 ? (
@@ -276,40 +276,40 @@ function FixtureInspector({ itemId }: FixtureInspectorProps) {
   );
 }
 
-interface FinishPickerProps {
+interface TexturePickerProps {
   roomId: string;
-  surface: FinishSurface;
+  surface: TextureSurface;
   currentId: string | null;
 }
 
 /**
  * 면 하나당 한 줄: 좌측 컬러 칩 + 라벨 + 단가, 우측 select 로 같은 면에 적용 가능한 항목들 나열.
- * 섬네일은 PBR 결과를 작은 색칩으로 근사 — 텍스처 도입 후엔 canvas 미리보기로 확장 가능.
+ * 섬네일은 PBR 결과를 작은 색칩으로 근사 — 추후 canvas 기반 미리보기로 확장 가능.
  */
-function FinishPicker({ roomId, surface, currentId }: FinishPickerProps) {
-  const setRoomFinish = useSceneStore((s) => s.setRoomFinish);
-  const options = FINISH_CATALOG.filter((f) => f.applicableTo.includes(surface));
-  const current = findFinish(currentId);
+function TexturePicker({ roomId, surface, currentId }: TexturePickerProps) {
+  const setRoomTexture = useSceneStore((s) => s.setRoomTexture);
+  const options = TEXTURE_CATALOG.filter((t) => t.applicableTo.includes(surface));
+  const current = findTexture(currentId);
 
   return (
-    <div className="finish-row">
+    <div className="texture-row">
       <span
-        className="finish-swatch"
+        className="texture-swatch"
         style={{ background: current?.baseColor ?? '#cccccc' }}
         aria-label={`${SURFACE_LABEL[surface]} 색`}
       />
-      <div className="finish-meta">
-        <span className="finish-surface">{SURFACE_LABEL[surface]}</span>
-        <span className="finish-label">{current?.label ?? '미지정'}</span>
+      <div className="texture-meta">
+        <span className="texture-surface">{SURFACE_LABEL[surface]}</span>
+        <span className="texture-label">{current?.label ?? '미지정'}</span>
         {current && (
-          <span className="finish-price muted">
+          <span className="texture-price muted">
             {current.pricePerSqmKRW.toLocaleString('ko-KR')}원/m²
           </span>
         )}
       </div>
       <select
         value={currentId ?? ''}
-        onChange={(e) => setRoomFinish(roomId, surface, e.target.value || null)}
+        onChange={(e) => setRoomTexture(roomId, surface, e.target.value || null)}
       >
         <option value="">미지정</option>
         {options.map((opt) => (

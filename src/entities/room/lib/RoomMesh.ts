@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import { CELL_SIZE } from '@shared/config';
 import { doorwaysOnWall, type WallSide } from '@shared/lib/grid';
-import { buildFinishMaterial, findFinish, type FinishSurface } from '@entities/finish';
+import { buildTextureMaterial, findTexture, type TextureSurface } from '@entities/texture';
 import type { Doorway, Room } from '../model';
 
 /** doorway 윗부분 인방(lintel)은 이 높이만큼 남긴다. 시각적으로 "문"임을 알리는 단서. */
 const DOORWAY_OPENING_HEIGHT = 2.1;
 
-/** 마감재가 지정 안 됐을 때의 폴백 색. 빈 슬롯도 렌더는 끊기지 않게. */
-const FALLBACK_COLOR: Record<FinishSurface, string> = {
+/** 텍스처가 지정 안 됐을 때의 폴백 색. 빈 슬롯도 렌더는 끊기지 않게. */
+const FALLBACK_COLOR: Record<TextureSurface, string> = {
   floor: '#cdbfa6',
   wall: '#ece5d6',
   ceiling: '#f5f3ee',
@@ -43,11 +43,11 @@ export function buildRoomMesh(
   const depth = room.cellsD * CELL_SIZE;
   const height = room.height;
 
-  const floorMaterial = makeSurfaceMaterial(room.floorFinishId, 'floor', width, depth, options.selected ? 0.08 : 0);
-  const wallMaterial = makeSurfaceMaterial(room.wallFinishId, 'wall', Math.max(width, depth), height, 0);
+  const floorMaterial = makeSurfaceMaterial(room.floorTextureId, 'floor', width, depth, options.selected ? 0.08 : 0);
+  const wallMaterial = makeSurfaceMaterial(room.wallTextureId, 'wall', Math.max(width, depth), height, 0);
   // 벽은 안쪽 면도 카메라가 들여다보게 DoubleSide. (Top 뷰는 위에서, 1인칭은 안쪽에서)
   wallMaterial.side = THREE.DoubleSide;
-  const ceilingMaterial = makeSurfaceMaterial(room.ceilingFinishId, 'ceiling', width, depth, 0);
+  const ceilingMaterial = makeSurfaceMaterial(room.ceilingTextureId, 'ceiling', width, depth, 0);
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(width, depth), floorMaterial);
   floor.rotation.x = -Math.PI / 2;
@@ -212,19 +212,19 @@ function placeWall(
 }
 
 /**
- * 마감재 id가 있으면 buildFinishMaterial로, 없거나 카탈로그에 없으면 폴백 단색.
- * 폴백 경로가 있어 마감재 시스템 도입 전 데이터·잘못된 id 모두 안전하게 렌더된다.
+ * 텍스처 id가 있으면 buildTextureMaterial로, 없거나 카탈로그에 없으면 폴백 단색.
+ * 폴백 경로가 있어 텍스처 시스템 도입 전 데이터·잘못된 id 모두 안전하게 렌더된다.
  */
 function makeSurfaceMaterial(
-  finishId: string | null,
-  surface: FinishSurface,
+  textureId: string | null,
+  surface: TextureSurface,
   sizeX: number,
   sizeY: number,
   tintAmount: number,
 ): THREE.MeshStandardMaterial {
-  const finish = findFinish(finishId);
-  if (finish) {
-    return buildFinishMaterial(finish, { sizeX, sizeY, tintAmount });
+  const texture = findTexture(textureId);
+  if (texture) {
+    return buildTextureMaterial(texture, { sizeX, sizeY, tintAmount });
   }
   const color = tintAmount ? tint(FALLBACK_COLOR[surface], tintAmount) : FALLBACK_COLOR[surface];
   return new THREE.MeshStandardMaterial({

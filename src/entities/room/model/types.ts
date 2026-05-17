@@ -13,12 +13,12 @@ export interface Room {
   cellsD: number;
   height: number;
   /**
-   * 각 면에 적용된 마감재 id (FINISH_CATALOG.id). null이면 폴백 단색.
+   * 각 면에 적용된 텍스처 id (TEXTURE_CATALOG.id). null이면 폴백 단색.
    * 카탈로그 조회 실패 시에도 폴백으로 떨어져 렌더는 끊기지 않음.
    */
-  floorFinishId: string | null;
-  wallFinishId: string | null;
-  ceilingFinishId: string | null;
+  floorTextureId: string | null;
+  wallTextureId: string | null;
+  ceilingTextureId: string | null;
 }
 
 /**
