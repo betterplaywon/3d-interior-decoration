@@ -1,4 +1,6 @@
-import type { LightingCatalogItem } from './types';
+import type { ShippingMethod } from '@shared/model';
+
+import type { LightingCatalogItem, LightingCategory } from './types';
 
 /**
  * 초기 조명 카탈로그. 카테고리(기본/장식)·조달방식(sea/air/domestic)·단가는
@@ -65,21 +67,21 @@ export function findLightingCatalog(kind: string | null | undefined): LightingCa
   return LIGHTING_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 
-const SHIPPING_LABEL: Record<string, string> = {
+const SHIPPING_LABEL: Record<ShippingMethod, string> = {
   sea: '해외(배편)',
   air: '해외(항공)',
   domestic: '국내',
 };
 
-export function shippingLabel(s: string): string {
-  return SHIPPING_LABEL[s] ?? s;
+export function shippingLabel(s: ShippingMethod): string {
+  return SHIPPING_LABEL[s];
 }
 
-const CATEGORY_LABEL: Record<string, string> = {
+const CATEGORY_LABEL: Record<LightingCategory, string> = {
   ambient: '기본 조명',
   decorative: '장식 조명',
 };
 
-export function categoryLabel(c: string): string {
-  return CATEGORY_LABEL[c] ?? c;
+export function categoryLabel(c: LightingCategory): string {
+  return CATEGORY_LABEL[c];
 }

@@ -4,7 +4,6 @@ export type {
   LightingKind,
   LightingShape,
   LightingCategory,
-  LightingShipping,
   LightingAnchor,
 } from './model';
 export {

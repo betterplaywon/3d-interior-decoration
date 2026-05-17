@@ -1,4 +1,4 @@
-import type { Vec3 } from '@shared/model';
+import type { ShippingMethod, Vec3 } from '@shared/model';
 
 export type FixtureKind = 'bathtub' | 'showerHead' | 'washbasin' | 'faucet' | 'toilet';
 
@@ -8,18 +8,11 @@ export type FixtureKind = 'bathtub' | 'showerHead' | 'washbasin' | 'faucet' | 't
  */
 export type FixtureCategory = 'sanitary' | 'faucet' | 'shower';
 
-/**
- * 조달방식. Lighting과 같은 어휘이지만 cross-entity import 금지 룰에 따라
- * fixture 도메인에서 다시 정의한다. 한 곳에 모으는 일반화는 세 번째 도메인이
- * 같은 어휘를 쓸 때 shared로 끌어올리는 별도 작업으로 분리.
- */
-export type FixtureShipping = 'sea' | 'air' | 'domestic';
-
 export interface FixtureCatalogItem {
   kind: FixtureKind;
   label: string;
   category: FixtureCategory;
-  shipping: FixtureShipping;
+  shipping: ShippingMethod;
   size: Vec3;
   color: string;
   /** 단품 단가(KRW). 마감재처럼 면적 단가가 아니라 개당. */

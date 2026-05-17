@@ -12,7 +12,7 @@ export const FURNITURE_CATALOG: readonly FurnitureCatalogItem[] = [
     label: '테이블',
     size: [1.2, 0.45, 0.7],
     color: '#6b4f3a',
-    modelUrl: '/models/wooden_table_02_4k.gltf/wooden_table_02_4k.gltf',
+    modelUrl: '/models/furniture/wooden_table_02_4k/wooden_table_02_4k.gltf',
   },
   {
     kind: 'chair',

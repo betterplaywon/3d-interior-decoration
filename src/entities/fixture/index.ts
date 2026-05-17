@@ -1,10 +1,4 @@
-export type {
-  FixtureKind,
-  FixtureCategory,
-  FixtureShipping,
-  FixtureCatalogItem,
-  FixtureItem,
-} from './model';
+export type { FixtureKind, FixtureCategory, FixtureCatalogItem, FixtureItem } from './model';
 export {
   FIXTURE_CATALOG,
   findFixtureCatalog,

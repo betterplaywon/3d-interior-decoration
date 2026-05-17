@@ -13,7 +13,7 @@ import {
   type FurnitureItem,
   type FurnitureKind,
 } from '@entities/furniture';
-import { findFinish, type FinishSurface } from '@entities/finish';
+import { findTexture, type TextureSurface } from '@entities/texture';
 import {
   findLightingCatalog,
   type LightingItem,
@@ -67,10 +67,10 @@ interface SceneState {
   /** 두 방이 인접하다면 그 공유 변에 doorway를 토글한다. */
   toggleDoorway: (roomAId: string, roomBId: string) => void;
   /**
-   * 특정 면(바닥/벽/천장)에 마감재를 적용. finishId가 카탈로그에 없거나
+   * 특정 면(바닥/벽/천장)에 텍스처를 적용. textureId가 카탈로그에 없거나
    * 해당 면 카테고리에 호환되지 않으면 무시한다(잘못된 조합 방어).
    */
-  setRoomFinish: (roomId: string, surface: FinishSurface, finishId: string | null) => void;
+  setRoomTexture: (roomId: string, surface: TextureSurface, textureId: string | null) => void;
 
   selectFurniture: (id: string | null) => void;
   selectRoom: (id: string | null) => void;
@@ -426,21 +426,21 @@ export const useSceneStore = create<SceneState>((set) => ({
     set(() => ({ selection: id ? { kind: 'fixture', id } : null })),
   setActiveRoom: (id) => set({ activeRoomId: id }),
 
-  setRoomFinish: (roomId, surface, finishId) =>
+  setRoomTexture: (roomId, surface, textureId) =>
     set((state) => {
-      if (finishId !== null) {
-        const finish = findFinish(finishId);
-        if (!finish) return state;
-        if (!finish.applicableTo.includes(surface)) return state;
+      if (textureId !== null) {
+        const texture = findTexture(textureId);
+        if (!texture) return state;
+        if (!texture.applicableTo.includes(surface)) return state;
       }
       const key =
         surface === 'floor'
-          ? 'floorFinishId'
+          ? 'floorTextureId'
           : surface === 'wall'
-            ? 'wallFinishId'
-            : 'ceilingFinishId';
+            ? 'wallTextureId'
+            : 'ceilingTextureId';
       return {
-        rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, [key]: finishId } : r)),
+        rooms: state.rooms.map((r) => (r.id === roomId ? { ...r, [key]: textureId } : r)),
       };
     }),
 
