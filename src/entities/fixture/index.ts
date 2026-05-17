@@ -7,7 +7,6 @@ export type {
 } from './model';
 export {
   FIXTURE_CATALOG,
-  findFixtureCatalog,
   findFixtureCatalogByAssetId,
   findFirstFixtureByKind,
   fixtureShippingLabel,

@@ -82,15 +82,9 @@ export function findLightingCatalogByAssetId(
 
 /**
  * persist v1→v2 마이그레이션 전용. 같은 kind 의 첫 카탈로그 항목으로 강등.
- * S7 에서 격리/제거 예정.
+ * 신규 코드는 assetId 기반 `findLightingCatalogByAssetId` 를 사용할 것.
  */
 export function findFirstLightingByKind(kind: LightingKind): LightingCatalogItem | null {
-  return LIGHTING_CATALOG.find((c) => c.kind === kind) ?? null;
-}
-
-/** @deprecated v1 호환 — assetId 기반 `findLightingCatalogByAssetId` 사용. */
-export function findLightingCatalog(kind: string | null | undefined): LightingCatalogItem | null {
-  if (!kind) return null;
   return LIGHTING_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 

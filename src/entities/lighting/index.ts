@@ -9,7 +9,6 @@ export type {
 } from './model';
 export {
   LIGHTING_CATALOG,
-  findLightingCatalog,
   findLightingCatalogByAssetId,
   findFirstLightingByKind,
   shippingLabel,

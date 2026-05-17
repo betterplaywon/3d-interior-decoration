@@ -74,15 +74,9 @@ export function findFixtureCatalogByAssetId(
 
 /**
  * persist v1→v2 마이그레이션 전용. 같은 kind 의 첫 카탈로그 항목으로 강등.
- * S7 에서 격리/제거 예정.
+ * 신규 코드는 assetId 기반 `findFixtureCatalogByAssetId` 를 사용할 것.
  */
 export function findFirstFixtureByKind(kind: FixtureKind): FixtureCatalogItem | null {
-  return FIXTURE_CATALOG.find((c) => c.kind === kind) ?? null;
-}
-
-/** @deprecated v1 호환 — assetId 기반 `findFixtureCatalogByAssetId` 사용. */
-export function findFixtureCatalog(kind: string | null | undefined): FixtureCatalogItem | null {
-  if (!kind) return null;
   return FIXTURE_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 

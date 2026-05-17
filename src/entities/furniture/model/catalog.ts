@@ -105,7 +105,8 @@ export function findFurnitureCatalogByAssetId(
 /**
  * persist v1→v2 마이그레이션 전용. 기존 v1 데이터는 assetId 가 없고 kind 만
  * 있으므로 카테고리 안의 첫 카탈로그 항목으로 부드럽게 강등. 사용자가 의도한
- * 카테고리는 유지, 구체 에셋만 디폴트로. S7 에서 격리/제거 예정.
+ * 카테고리는 유지, 구체 에셋만 디폴트로. 신규 코드는 assetId 기반
+ * `findFurnitureCatalogByAssetId` 를 사용할 것.
  */
 export function findFirstFurnitureByKind(kind: FurnitureKind): FurnitureCatalogItem | null {
   return FURNITURE_CATALOG.find((c) => c.kind === kind) ?? null;
