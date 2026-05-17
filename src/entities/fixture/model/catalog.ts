@@ -1,4 +1,6 @@
-import type { FixtureCatalogItem, FixtureCategory, FixtureShipping } from './types';
+import type { ShippingMethod } from '@shared/model';
+
+import type { FixtureCatalogItem, FixtureCategory } from './types';
 
 /**
  * 초기 위생도기 카탈로그. 현업 인터뷰 기반 — 욕조·세면대 등 도기류는
@@ -61,13 +63,13 @@ export function findFixtureCatalog(kind: string | null | undefined): FixtureCata
   return FIXTURE_CATALOG.find((c) => c.kind === kind) ?? null;
 }
 
-const SHIPPING_LABEL: Record<FixtureShipping, string> = {
+const SHIPPING_LABEL: Record<ShippingMethod, string> = {
   sea: '해외(배편)',
   air: '해외(항공)',
   domestic: '국내',
 };
 
-export function fixtureShippingLabel(s: FixtureShipping): string {
+export function fixtureShippingLabel(s: ShippingMethod): string {
   return SHIPPING_LABEL[s];
 }
 

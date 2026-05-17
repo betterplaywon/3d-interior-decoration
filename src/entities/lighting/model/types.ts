@@ -1,16 +1,10 @@
-import type { Vec3 } from '@shared/model';
+import type { ShippingMethod, Vec3 } from '@shared/model';
 
 /**
  * 카탈로그 구분: 기본(ambient)은 전반 밝기용, 장식(decorative)은 데코·악센트.
  * 현업 인터뷰 인사이트 — 장식 조명은 단가/조달방식 변수가 큰 도메인 요소.
  */
 export type LightingCategory = 'ambient' | 'decorative';
-
-/**
- * 조달방식. 도메인 인사이트(3): 해외 조명은 배편(sea)/항공(air),
- * 국내(domestic)는 수급은 빠르나 종류가 적다. 견적 v2에서 가산 변수.
- */
-export type LightingShipping = 'sea' | 'air' | 'domestic';
 
 /**
  * Three.js 광원 매핑. PointLight = 전구·펜던트(전방향),
@@ -31,7 +25,7 @@ export interface LightingCatalogItem {
   label: string;
   shape: LightingShape;
   category: LightingCategory;
-  shipping: LightingShipping;
+  shipping: ShippingMethod;
   anchor: LightingAnchor;
   /** 광원 색 (hex). PBR 환경에서도 카메라 노출과 무관하게 톤이 보이도록. */
   color: string;
