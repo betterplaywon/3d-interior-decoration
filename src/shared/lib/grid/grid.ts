@@ -193,6 +193,34 @@ export function worldPointToCell(worldX: number, worldZ: number): { cellX: numbe
 }
 
 /**
+ * 셀 사각형(좌상단 + 셀 개수)을 월드 좌표 bounds 로 변환. id/height 가 없는
+ * placement ghost 같은 임시 구조에서도 쓰도록 roomBounds 보다 좁은 입력을 받음.
+ */
+export function cellRectBounds(rect: {
+  cellX: number;
+  cellZ: number;
+  cellsW: number;
+  cellsD: number;
+}): RoomBounds {
+  const minX = rect.cellX * CELL_SIZE;
+  const minZ = rect.cellZ * CELL_SIZE;
+  const width = rect.cellsW * CELL_SIZE;
+  const depth = rect.cellsD * CELL_SIZE;
+  const maxX = minX + width;
+  const maxZ = minZ + depth;
+  return {
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    centerX: (minX + maxX) / 2,
+    centerZ: (minZ + maxZ) / 2,
+    width,
+    depth,
+  };
+}
+
+/**
  * 마우스 위치(월드 좌표)를 받아, 그 점을 중앙 근방으로 하는 cellsW×cellsD 방의 좌상단 셀을 반환.
  * placement ghost 가 커서 중앙에 떠 있는 자연스러운 정렬을 위해 절반 만큼 빼는 게 핵심.
  */

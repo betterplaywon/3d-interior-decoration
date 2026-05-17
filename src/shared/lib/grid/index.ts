@@ -11,5 +11,6 @@ export {
   findFreeSlot,
   worldPointToCell,
   snapRoomSlot,
+  cellRectBounds,
 } from './grid';
 export { roomSurfaceAreas } from './surface';
