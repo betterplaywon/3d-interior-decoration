@@ -10,20 +10,20 @@ import {
   type Room,
 } from '@entities/room';
 import {
-  FURNITURE_CATALOG,
+  findFurnitureCatalogByAssetId,
+  type FurnitureAssetId,
   type FurnitureItem,
-  type FurnitureKind,
 } from '@entities/furniture';
 import { findTexture, type TextureSurface } from '@entities/texture';
 import {
-  findLightingCatalog,
+  findLightingCatalogByAssetId,
+  type LightingAssetId,
   type LightingItem,
-  type LightingKind,
 } from '@entities/lighting';
 import {
-  findFixtureCatalog,
+  findFixtureCatalogByAssetId,
+  type FixtureAssetId,
   type FixtureItem,
-  type FixtureKind,
 } from '@entities/fixture';
 import type { CameraMode, Selection } from './types';
 
@@ -38,17 +38,17 @@ interface SceneState {
   activeRoomId: string | null;
   cameraMode: CameraMode;
 
-  addFurniture: (kind: FurnitureKind, position?: Vec3) => void;
+  addFurniture: (assetId: FurnitureAssetId, position?: Vec3) => void;
   removeFurniture: (id: string) => void;
   moveFurniture: (id: string, position: Vec3) => void;
   rotateFurniture: (id: string, rotationY: number) => void;
 
   /**
-   * 카탈로그 항목 종류로 새 조명을 활성 룸 중앙에 추가.
+   * 카탈로그 assetId 로 새 조명을 활성 룸 중앙에 추가.
    * y 좌표는 anchor (ceiling/floor)에 따라 카탈로그가 결정한다 — 사용자는
    * 일단 위치만 정하고, 추후 인스펙터에서 미세조정 가능.
    */
-  addLighting: (kind: LightingKind) => void;
+  addLighting: (assetId: LightingAssetId) => void;
   removeLighting: (id: string) => void;
   moveLighting: (id: string, position: Vec3) => void;
 
@@ -56,7 +56,7 @@ interface SceneState {
    * 위생도기를 활성 룸 중앙(바닥)에 추가. 룸 타입(욕실/주방) 제약은 P0에서
    * 도입하지 않아 어느 방에든 배치 가능 — 후속 작업에서 룸 분류 도입 시 제약화.
    */
-  addFixture: (kind: FixtureKind, position?: Vec3) => void;
+  addFixture: (assetId: FixtureAssetId, position?: Vec3) => void;
   removeFixture: (id: string) => void;
   moveFixture: (id: string, position: Vec3) => void;
   rotateFixture: (id: string, rotationY: number) => void;
@@ -187,9 +187,9 @@ export const useSceneStore = create<SceneState>()(
   activeRoomId: init.activeRoomId,
   cameraMode: 'orbit',
 
-  addFurniture: (kind, position) =>
+  addFurniture: (assetId, position) =>
     set((state) => {
-      const catalog = FURNITURE_CATALOG.find((c) => c.kind === kind);
+      const catalog = findFurnitureCatalogByAssetId(assetId);
       if (!catalog) return state;
       const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
       const room = state.rooms.find((r) => r.id === targetRoomId);
@@ -197,8 +197,9 @@ export const useSceneStore = create<SceneState>()(
       const b = roomBounds(room);
       const initialPos: Vec3 = position ?? [b.centerX, 0, b.centerZ];
       const item: FurnitureItem = {
-        id: nextId(kind),
-        kind,
+        id: nextId('furniture'),
+        assetId: catalog.assetId,
+        kind: catalog.kind,
         roomId: room.id,
         position: initialPos,
         rotationY: 0,
@@ -228,9 +229,9 @@ export const useSceneStore = create<SceneState>()(
       furniture: state.furniture.map((f) => (f.id === id ? { ...f, rotationY } : f)),
     })),
 
-  addLighting: (kind) =>
+  addLighting: (assetId) =>
     set((state) => {
-      const catalog = findLightingCatalog(kind);
+      const catalog = findLightingCatalogByAssetId(assetId);
       if (!catalog) return state;
       const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
       const room = state.rooms.find((r) => r.id === targetRoomId);
@@ -239,8 +240,9 @@ export const useSceneStore = create<SceneState>()(
       // anchor='ceiling'이면 천장 살짝 아래(0.05m 여유), 'floor'면 바닥 위 스탠드 본체 높이 가정(1.2m).
       const y = catalog.anchor === 'ceiling' ? room.height - 0.05 : 1.2;
       const item: LightingItem = {
-        id: nextId(kind),
-        kind,
+        id: nextId('lighting'),
+        assetId: catalog.assetId,
+        kind: catalog.kind,
         roomId: room.id,
         position: [b.centerX, y, b.centerZ],
       };
@@ -264,9 +266,9 @@ export const useSceneStore = create<SceneState>()(
       lights: state.lights.map((l) => (l.id === id ? { ...l, position } : l)),
     })),
 
-  addFixture: (kind, position) =>
+  addFixture: (assetId, position) =>
     set((state) => {
-      const catalog = findFixtureCatalog(kind);
+      const catalog = findFixtureCatalogByAssetId(assetId);
       if (!catalog) return state;
       const targetRoomId = state.activeRoomId ?? state.rooms[0]?.id;
       const room = state.rooms.find((r) => r.id === targetRoomId);
@@ -274,8 +276,9 @@ export const useSceneStore = create<SceneState>()(
       const b = roomBounds(room);
       const initialPos: Vec3 = position ?? [b.centerX, 0, b.centerZ];
       const item: FixtureItem = {
-        id: nextId(kind),
-        kind,
+        id: nextId('fixture'),
+        assetId: catalog.assetId,
+        kind: catalog.kind,
         roomId: room.id,
         position: initialPos,
         rotationY: 0,
